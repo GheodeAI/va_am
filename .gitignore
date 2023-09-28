@@ -1,5 +1,19 @@
+# netCDF4 and other data
+./data/*.nc
+./data/*.csv
+*.nc
+*.png
+*.eps
+*.pdf
+*.csv
+*.h5
+secret.txt
+out.txt
+*.mp4
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
+__pycache__/*.pyc
 *.py[cod]
 *$py.class
 

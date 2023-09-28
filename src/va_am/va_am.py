@@ -1,6 +1,4 @@
 from __future__ import annotations
-import sys
-sys.path.append("..")
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '3'
@@ -16,7 +14,7 @@ import tensorflow as tf
 import keras
 from keras import layers
 from keras import regularizers
-from utils import AutoEncoders, functions
+from .utils import AutoEncoders, functions
 import datetime
 import json
 import argparse
@@ -358,13 +356,13 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
                                                latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
                                                longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
                                               ))
-        xr_Pre_Analog.to_netcdf(f'./../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+        xr_Pre_Analog.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
         xr_Post_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_Analog)),
                                    coords=dict(reconstruction = np.arange(params["iter"]),
                                                latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
                                                longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
                                               ))
-        xr_Post_Analog.to_netcdf(f'./../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+        xr_Post_Analog.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
     if params["period"] in ["both", "post"]:
         reconstruction_Pre_AE = np.mean(reconstructions_Pre_AE, axis=0)
         print('Size Recons Pre AE: ', np.size(reconstruction_Pre_AE))
@@ -375,13 +373,13 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
                                            latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
                                            longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
                                           ))
-        xr_Pre_AE.to_netcdf(f'./../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+        xr_Pre_AE.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
         xr_Post_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_AE)),
                                 coords=dict(reconstruction = np.arange(params["iter"]),
                                             latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
                                             longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
                                            ))
-        xr_Post_AE.to_netcdf(f'./../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+        xr_Post_AE.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
 
 def runComparison(params: dict)-> tuple:
     """
@@ -423,14 +421,14 @@ def runComparison(params: dict)-> tuple:
 
     # Default values
     if not "temp_dataset" in params:
-        params["temp_dataset"] = '../data/air.sig995.day.nc'
+        params["temp_dataset"] = '../../data/air.sig995.day.nc'
     if not "temp_var_name" in params:
         params["temp_var_name"] = 'air'
     if not "prs_dataset" in params:
-        params["prs_dataset"] = '../data/prmsl.day.mean.nc'
+        params["prs_dataset"] = '../../data/prmsl.day.mean.nc'
     # Load data
-    temp=xr.load_dataset(params["temp_dataset"])   #Temperatures 
-    prs=xr.load_dataset(params["prs_dataset"])    #Atmospheric Pressure
+    temp=xr.load_dataset(params["temp_dataset"], engine='netcdf4')   #Temperatures 
+    prs=xr.load_dataset(params["prs_dataset"], engine='netcdf4')    #Atmospheric Pressure
     if params["verbose"]:
         print('Data loaded')
 
@@ -804,10 +802,10 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     """
     # Load data
     if not "ident_dataset" in params:
-        params["ident_dataset"] = '../data/data_dailyMax_t2m_1940-2022.nc'
+        params["ident_dataset"] = '../../data/data_dailyMax_t2m_1940-2022.nc'
     if not "ident_var_name" in params:
         params["ident_var_name"] = 't2m_dailyMax'
-    data_temp=xr.load_dataset(params["ident_dataset"]) #Temperatures
+    data_temp=xr.load_dataset(params["ident_dataset"], engine='netcdf4') #Temperatures
     if params["verbose"]:
         print('Data loaded')
 
@@ -1127,6 +1125,294 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             requests.get(url).json()
         raise message
 
+def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, period, method):
+    """
+      _step_loop
+       
+      Auxiliar method that handle the runs depending on the options specified.
+        
+      Parameters
+      ----------
+      params: dict
+          Default parameters and configuration dictionary for most of the executions.
+      params_multiple: dict
+          Specific parameters and configuration dictionary that overwrite params for some methods.
+      file_params_name: str
+          The default name of the params/configuration file.
+      n_execs: int
+          The number of repeted executions for some methods.
+      ident: bool
+          Value of flag to performs the identification period task or not.
+      verb: bool
+          Value of flag that indicates if verbosity information should be show or not.
+      teleg: bool
+          Value of flag for sending Exceptions to Telegram bot.
+      token: str
+          Token of Telegram bot.
+      chat_id: str
+          ID of the chat where the Telegram bot will send the messages.
+      user_name: str
+          User name to mention in case of Exceptions.
+      save_recons: bool
+          Value of flag for saving or not the reconstrucion information in an .nc file.
+      period: str
+          Specify the period where to perform the operation between `both` (default), `pre` or `post`.
+      method: str
+          Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
+        
+      Returns
+      ----------
+    """
+    # Execution of method
+    if method == 'day':
+        if ident:
+            # Read file
+            ## Try-except-else to open file and re-write params
+            try:
+                file_params = open(file_params_name)
+            except:
+                message = OSError(f'File {file_params_name} not found. To identify the Heat wave period a configuration parameters file is needed.')
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
+                    print(requests.get(url).json())
+                raise message
+            else:
+                params = json.load(file_params)
+                file_params.close()
+            if verb is not None:
+                params["verbose"] = verb
+            params["teleg"] = teleg
+            params["period"] = period
+            identify_heatwave_days(params)
+            message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
+            if teleg:
+                url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                print(requests.get(url).json())
+            warnings.warn(message)
+        else:
+            runComparison(params)
+    elif method in ['days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs', 'latents-seasons-execs']:
+        # Read file
+        ## Try-except-else to open file and re-write params
+        try:
+            file_params = open(file_params_name)
+        except:
+            message = OSError(f'File {file_params_name} not found. Your method need a configuration parameters file.')
+            if teleg:
+                url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
+                requests.get(url).json()
+            raise message
+        else:
+            params_multiple = json.load(file_params)
+            params_multiple["teleg"] = teleg
+            params_multiple["period"] = period
+            if ident:
+                heatwave_period = identify_heatwave_days(params_multiple)
+                params_multiple["data_of_interest_init"] = heatwave_period
+                params_multiple["data_of_interest_end"] = heatwave_period
+            else:
+                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"]), datetime.datetime.strptime(params_multiple["data_of_interest_end"]), datetime.timedelta(days=1))
+                params_multiple["data_of_interest_init"] = heatwave_period
+                params_multiple["data_of_interest_end"] = heatwave_period
+            params = params_multiple.copy()
+            file_params.close()
+        if verb is not None:
+            params["verbose"] = verb
+        # Methods with configfile
+        if method == 'days':
+            reconstructions_Pre_Analog = []
+            reconstructions_Post_Analog = []
+            reconstructions_Pre_AE = []
+            reconstructions_Post_AE = []
+            for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                if idx == 0:
+                    params["load_AE"] = False
+                if idx > 0 and not params["load_AE"]:
+                    params["load_AE"] = True
+                params["data_of_interest_init"] = init
+                params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                if save_recons:
+                    reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                    reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                    reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                    reconstructions_Post_AE.append(reconstruction_Post_AE)
+            save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        elif method == 'seasons':
+            for season in params_multiple["season"]:
+                params["season"] = season
+                for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                    if idx == 0:
+                        params["load_AE"] = False
+                    if idx > 0 and not params["load_AE"]:
+                        params["load_AE"] = True
+                    params["data_of_interest_init"] = init
+                    params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                    reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                    if save_recons:
+                        reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                        reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                        reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                        reconstructions_Post_AE.append(reconstruction_Post_AE)
+                save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        elif method == 'execs':
+            if 'n_execs' in params.keys():
+                n_execs = params['n_execs']
+            for i in range(n_execs):
+                params["name"] = f'-exec{i}{params_multiple["name"]}'
+                for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                    if idx == 0:
+                        params["load_AE"] = False
+                    if idx > 0 and not params["load_AE"]:
+                        params["load_AE"] = True
+                    params["data_of_interest_init"] = init
+                    params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                    reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                    if save_recons:
+                        reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                        reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                        reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                        reconstructions_Post_AE.append(reconstruction_Post_AE)
+                save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        elif method == 'latents':
+            for latent in params_multiple["latent_dim"]:
+                params["latent_dim"] = latent
+                for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                    if idx == 0:
+                        params["load_AE"] = False
+                    if idx > 0 and not params["load_AE"]:
+                        params["load_AE"] = True
+                    params["data_of_interest_init"] = init
+                    params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                    reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                    if save_recons:
+                        reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                        reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                        reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                        reconstructions_Post_AE.append(reconstruction_Post_AE)
+                save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        elif method == 'seasons-execs':
+            if 'n_execs' in params.keys():
+                n_execs = params["n_execs"]
+            for season in params_multiple["season"]:
+                params["season"] = season
+                for i in range(n_execs):
+                    params["name"] = f'-exec{i}{params_multiple["name"]}'
+                    for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                        if idx == 0:
+                            params["load_AE"] = False
+                        if idx > 0 and not params["load_AE"]:
+                            params["load_AE"] = True
+                        params["data_of_interest_init"] = init
+                        params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                        reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                        if save_recons:
+                            reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                            reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                            reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                            reconstructions_Post_AE.append(reconstruction_Post_AE)
+                    save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        elif method == 'latents-execs':
+            if 'n_execs' in params.keys():
+                n_execs = params['n_execs']
+            for latent in params_multiple["latent_dim"]:
+                params["latent_dim"] = latent
+                for i in range(n_execs):
+                    params["name"] = f'-exec{i}{params_multiple["name"]}'
+                    for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                        if idx == 0:
+                            params["load_AE"] = False
+                        if idx > 0 and not params["load_AE"]:
+                            params["load_AE"] = True
+                        params["data_of_interest_init"] = init
+                        params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                        reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                        if save_recons:
+                            reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                            reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                            reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                            reconstructions_Post_AE.append(reconstruction_Post_AE)
+                    save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        elif method == 'latents-seasons-execs':
+            if 'n_execs' in params.keys():
+                n_execs = params['n_execs']
+            for latent in params_multiple["latent_dim"]:
+                params["latent_dim"] = latent
+                for season in params_multiple["season"]:
+                    params["season"] = season
+                    for i in range(n_execs):
+                        params["name"] = f'-exec{i}{params_multiple["name"]}'
+                        for idx, init in enumerate(params_multiple["data_of_interest_init"]):
+                            if idx == 0:
+                                params["load_AE"] = False
+                            if idx > 0 and not params["load_AE"]:
+                                params["load_AE"] = True
+                            params["data_of_interest_init"] = init
+                            params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
+                            reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
+                            if save_recons:
+                                reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
+                                reconstructions_Post_Analog.append(reconstruction_Post_Analog)
+                                reconstructions_Pre_AE.append(reconstruction_Pre_AE)
+                                reconstructions_Post_AE.append(reconstruction_Post_AE)
+                        save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+    else:
+        message = ValueError(f"Not recognized {method} method. The available methods are 'day' (default), 'days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs' or 'latents-seasons-execs'")
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
+            requests.get(url).json()
+        raise message
+
+def va_am(ident:bool=False, method:str='day', config_file:str='params.json', secret_file:str='secrets.txt', verbose:bool=False, teleg:bool=False, period:str='both', save_recons:bool=False):
+    """
+    va_am
+
+    Equivalent to main function. Its scope is to provide a way to perform the same procedures as `main` function, but by importing it in another python code. 
+    
+    Parameters
+      ----------
+      ident: bool
+          Value of flag to performs the identification period task or not.
+      method: str
+          Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
+      config_file: str
+          The default name of the params/configuration file.
+      secret_file: str
+          The default name of the Telegram bot informatin file.
+      verbose: bool
+          Value of flag that indicates if verbosity information should be show or not.
+      teleg: bool
+          Value of flag for sending Exceptions to Telegram bot.
+      period: str
+          Specify the period where to perform the operation between `both` (default), `pre` or `post`.
+      save_recons: bool
+          Value of flag for saving or not the reconstrucion information in an .nc file.
+        
+      Returns
+      ----------
+    """
+    params_multiple = None
+    file_params_name = config_file
+    n_execs = 5
+    verb = verbose
+    token = None
+    chat_id = None
+    user_name = None
+    if teleg:
+        with open(secret_file) as f:
+            token = f.readline().strip()
+            chat_id = f.readline().strip()
+            user_name = f.readline().strip()
+        f.close()
+    try:
+        _step_loop_without_args(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, period, method)
+    except Exception as ex:
+        if teleg:
+            message = traceback.format_exc().replace("<","").replace(">","")
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(ex).__name__+'</b>] '+user_name+': '+str(message)}"
+            requests.get(url).json()
+        raise ex
+
 def main():
     """
     Main
@@ -1145,10 +1431,11 @@ def main():
     parser.add_argument("-i", "--identifyhw", dest='ident', action="store_true", help="Flag. If true, first, identify the heatwave period and, then, apply the 'method' if is one of: \n 'days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs' or 'latents-seasons-execs'")
     parser.add_argument("-m", "--method", dest='method', help="Specify an method to execute between: \n 'day' (default), 'days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs' or 'latents-seasons-execs'")
     parser.add_argument("-f", "--configfile", dest='conf', help="JSON file with configuration of parameters. If not specified and 'method' require the file, it will be searched at 'params.json'")
+    parser.add_argument("-sf", "--secretfile", dest='secret', help="Path to TXT file with needed information of the Telegram bot to use to WARN and advice about Exceptions. If not specified and 'method' require the file, it will be searched at 'secret.txt'")
     parser.add_argument("-v", "--verbose", dest='verb', action="store_true", help="Flag. If true, overwrite verbose param.")
     parser.add_argument("-t", "--teleg", dest='teleg', action="store_true", help="Flag. If true, exceptions and warnings will be sent to Telegram Bot.")
     parser.add_argument("-p", "--period", dest='period', help="Specify the period where to perform the operations between: \n 'both' (default), 'pre' or 'post'")
-    parser.add_argument("-sr", "--savereconstruction", dest='save_recons', action="store_true", help="Flag. If true, teh reconstruction per iteration would be saved in ./../data/ folder as an reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc file.")
+    parser.add_argument("-sr", "--savereconstruction", dest='save_recons', action="store_true", help="Flag. If true, teh reconstruction per iteration would be saved in ./../../data/ folder as an reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc file.")
     args = parser.parse_args()
     
     # Default parameters
@@ -1279,6 +1566,7 @@ def main():
     }
     params_multiple = None
     file_params_name = 'params.json'
+    secret_file = 'secret.txt'
     n_execs = 5
     ident = False
     verb = None
@@ -1294,11 +1582,13 @@ def main():
         teleg = args.teleg
     if args.save_recons is not None:
         save_recons = args.save_recons
+    if args.secret is not None:
+        secret_file = args.secret
     token = None
     chat_id = None
     user_name = None
     if teleg:
-        with open('./secret.txt') as f:
+        with open(secret_file) as f:
             token = f.readline().strip()
             chat_id = f.readline().strip()
             user_name = f.readline().strip()
