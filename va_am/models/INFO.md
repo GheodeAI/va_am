@@ -1,0 +1,1 @@
+In this folder the .h5 models that correspond to the encoders for each period, will be stored.
