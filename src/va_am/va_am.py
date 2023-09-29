@@ -108,7 +108,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
     plt.savefig(f'./figures/history-{file_save[9:-3]}.pdf')
     plt.close()
 
-    Path(file_save).mkdir(parents=True, exist_ok=True)
+    Path(file_save.split("/")[-2]).mkdir(parents=True, exist_ok=True)
     AE.encoder.save(file_save)
     return AE.encoder
 
@@ -438,6 +438,8 @@ def runComparison(params: dict)-> tuple:
     prs=xr.load_dataset(params["prs_dataset"], engine='netcdf4')    #Atmospheric Pressure
     if params["verbose"]:
         print('Data loaded')
+        
+    print(np.shape(temp[params["temp_var_name"]].data))
 
     if params["temp_var_name"] == "t2m_dailyMax":
         params["pre_init"] = str(temp.time.data[0].astype('datetime64[D]'))
@@ -562,7 +564,7 @@ def runComparison(params: dict)-> tuple:
 
     if params["verbose"]:
         print('Train/Test split')
-        
+    
     ## Normalization
     if params["period"] == 'both':
         min_scale_prs = np.min(np.array([x_train_ind_prs.prmsl.min(), x_test_ind_prs.prmsl.min(), x_train_pre_prs.prmsl.min(), x_test_pre_prs.prmsl.min()]))
@@ -928,8 +930,6 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
     period = 'both'
     if args.period is not None:
         period = args.period
-    if 'p' not in params.keys():
-        params['p'] = 1
     # Execution of method
     if args.method == 'day' or args.method is None:
         if ident:
@@ -953,6 +953,8 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params["verbose"] = verb
             params["teleg"] = teleg
             params["period"] = period
+            if "p" not in params.keys():
+                params["p"] = 2
             identify_heatwave_days(params)
             message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
             if teleg:
@@ -991,6 +993,8 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             file_params.close()
         if verb is not None:
             params["verbose"] = verb
+        if "p" not in params.keys():
+            params["p"] = 2
         # Methods with configfile
         if args.method == 'days':
             reconstructions_Pre_Analog = []
@@ -1174,8 +1178,6 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
       Returns
       ----------
     """
-    if 'p' not in params.keys():
-        params['p'] = 1
     # Execution of method
     if method == 'day':
         if ident:
@@ -1196,6 +1198,8 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params["verbose"] = verb
             params["teleg"] = teleg
             params["period"] = period
+            if "p" not in params.keys():
+                params["p"] = 2
             identify_heatwave_days(params)
             message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
             if teleg:
@@ -1231,6 +1235,8 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             file_params.close()
         if verb is not None:
             params["verbose"] = verb
+        if "p" not in params.keys():
+            params["p"] = 2
         # Methods with configfile
         if method == 'days':
             reconstructions_Pre_Analog = []
