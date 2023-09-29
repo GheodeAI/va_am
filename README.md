@@ -4,6 +4,7 @@
 
 
 Documentation[#](#documentation "Permalink to this heading")
+------------------------------------------------------------
 
 The documentation is available [here](https://va-am.readthedocs.io/).
 
@@ -122,4 +123,5 @@ The arguments of `va_am()` method are the same as the outside of code version. F
 
 
 Collaboration[#](#collaboration "Permalink to this heading")
+------------------------------------------------------------
 If you find any bugs/issues or have any suggestions, please open an [issue](hhttps://github.com/cosminmarina/va_am/issues).
