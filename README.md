@@ -1,5 +1,7 @@
 # VA-AM
 
+<img src="/docs/_static/va-am2.png" width="400" />
+
 <img src="/docs/_static/distribution.png" width="200" /> <img src="/docs/_static/identification.png" width="200" /> <img src="/docs/_static/identification2.png" width="200" /> <img src="/docs/_static/distribution2.png" width="200" />
 
 

@@ -3,6 +3,7 @@ matplotlib==3.5.3
 numpy==1.21.6
 pandas==1.2.3
 Requests==2.31.0
+scipy==1.7.3
 setuptools==59.8.0
 sympy==1.10.1
 tensorflow==2.10.0

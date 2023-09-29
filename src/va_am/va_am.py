@@ -24,6 +24,8 @@ from typing import Union
 import requests
 import traceback
 import sympy
+from scipy.spatial import minkowski_distance
+from pathlib import Path
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
@@ -73,7 +75,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
       n_epochs: int 
          The number of epochs for the keras.model.                     
       data_prs: np.ndarray
-         Pressure data (usually) to train the model.        
+         Driver/predictor data (usually) to train the model.        
       file_save: str
          Where to save the .h5 model.            
         
@@ -97,6 +99,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
 
         history = AE.fit(data_prs, data_prs, epochs=n_epochs, batch_size=128, min_delta=1e-6, patience=50, verbose=verbose)
 
+    Path("./figures").mkdir(parents=True, exist_ok=True)
     plt.plot(history.history['loss'],label='loss')
     plt.plot(history.history['val_loss'],label='val_loss')
     plt.yscale('log')
@@ -105,6 +108,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
     plt.savefig(f'./figures/history-{file_save[9:-3]}.pdf')
     plt.close()
 
+    Path(file_save).mkdir(parents=True, exist_ok=True)
     AE.encoder.save(file_save)
     return AE.encoder
 
@@ -121,9 +125,9 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
       AE_pre, AE_ind: keras.model
          Encoders keras.model for pre and post industrial period.                         
       pre_indust_prs, indust_prs: list or np.ndarray
-         Pressure data of pre and post industrial period.                     
+         Driver/predictor data of pre and post industrial period.                     
       data_of_interes_prs:list or np.ndarray
-         Pressure data of interest.    
+         Driver/predictor data of interest.    
       period: str
          Value that handle wich part of the data is used.                                   
         
@@ -192,28 +196,30 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
     return res
 
 
-def analogSearch(k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
+def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
     """
       analogSearch                                       
        
-      Funtion that performs the Analog Search Method for a given pressure (predictor) and temperature (target) variable.                                  
+      Funtion that performs the Analog Search Method for a given diver/predictor and temperature (target) variable.                                  
         
       Parameters
-      ----------                                             
+      ----------
+      p: int
+          The p-order of Minskowski distance to perform.
       k: int
           Number of near neighbours to search.            
       data_prs: list or ndarray
-          Pressure data where to search.
+          Driver/predictor data where to search.
       data_of_interes_prs: list or ndarray
-          Pressure data to be searched.
+          Driver/predictor data to be searched.
       time_prs: DataArray
-          Time DataArray corresponding to the pressure data where is searching.
+          Time DataArray corresponding to the driver/predictor data where is searching.
       data_temp: Dataset
           Temperature Dataset used to check the target value.
       threshold: int or float
           Threshold used in analogSearch to compute local proximity.
       img_size: list or ndarray
-          List that determine the size of the pressure and temperature images.
+          List that determine the size of the driver/predictor and target images.
       iter: int
           How many random neighbours to select.
       threshold_offset_counter: int
@@ -226,18 +232,24 @@ def analogSearch(k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs
       Returns
       ----------
       : tuple
-          A tuple containing selected pressure and temperature.
+          A tuple containing selected driver/predictor and target.
     """
+    is_not_encoded = (len(np.shape(data_prs)) == 4)
+
+    d_i_s = np.shape([data_of_interest_prs])
+    d_of_i = np.reshape([data_of_interest_prs], (d_i_s[0], int(np.size(data_of_interest_prs)/d_i_s[0])))
+    d_p_s = np.shape(data_prs)
+    d_p = np.reshape(data_prs, (d_p_s[0],int(np.size(data_prs)/d_p_s[0])))
+    dist = minkowski_distance(d_of_i, d_p, p=p)
+
     data_diff = np.abs(data_prs-data_of_interest_prs)
 
-    is_not_encoded = (len(data_diff.shape) == 4)
-
-    d = np.zeros_like(data_diff)
-    d[data_diff <= threshold] = -1
-    if is_not_encoded:
-        dist = np.sum(d, axis=(1,2,3)) + threshold_offset_counter + (np.sum(data_diff, axis=(1,2,3)) / img_size)
-    else:
-        dist = np.sum(d, axis=1) + threshold_offset_counter + (np.sum(data_diff, axis=1) / img_size)
+    # d = np.zeros_like(data_diff)
+    # d[data_diff <= threshold] = -1
+    # if is_not_encoded:
+    #     dist = np.sum(d, axis=(1,2,3)) + threshold_offset_counter + (np.sum(data_diff, axis=(1,2,3)) / img_size)
+    # else:
+    #     dist = np.sum(d, axis=1) + threshold_offset_counter + (np.sum(data_diff, axis=1) / img_size)
 
     minindex = dist.argsort()
     time_prediction = time_prs[minindex[:k]]
@@ -252,6 +264,7 @@ def analogSearch(k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs
     else:
         selected_psr = prsf[idx,:]
 
+    print(f'\n selected_psr: {selected_psr} \n selected_temp: {selected_temp} \n')
 
     return selected_psr, selected_temp
 
@@ -468,7 +481,7 @@ def runComparison(params: dict)-> tuple:
     else:
         indust_temp = data_temp.copy()
 
-    ## Load Pressure
+    ## Load Driver/predictor
     data_prs = prs.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     ### Pre-Industrial data
     if params["period"] in ['both', 'pre']:
@@ -534,7 +547,7 @@ def runComparison(params: dict)-> tuple:
         print('Season split')
 
     # Train/Test split & normalization
-    ## Train/test split for pressure
+    ## Train/test split for driver/predictor
     if params["period"] in ['both', 'pre']:
         x_train_pre_prs = pre_indust_prs.isel(time=slice(0,int(pre_indust_prs.dims.get('time')*0.75)))
         x_test_pre_prs = pre_indust_prs.isel(time=slice(int(pre_indust_prs.dims.get('time')*0.75), int(pre_indust_prs.dims.get('time'))))
@@ -675,7 +688,7 @@ def runComparison(params: dict)-> tuple:
     if params["interest_region_type"] == "coord":
         int_reg = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], is_teleg)
 
-    ## This is the threshold of difference between pressure maps and target
+    ## This is the threshold of difference between driver/predictor maps and target
     ## to be acepted as low difference
     threshold = stat_mean-0.3*stat_std
     threshold_AE = encoded.mean()-0.3*encoded.std()
@@ -714,21 +727,21 @@ def runComparison(params: dict)-> tuple:
 
     # Analog Pre
     if params["period"] in ['both', 'pre']:
-        analog_pre = analogSearch(params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
 
     # Analog Post
     if params["period"] in ['both', 'post']:
-        analog_ind = analogSearch(params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
     
 
     # AE Pre
     if params["period"] in ['both', 'pre']:
-        latent_analog_pre = analogSearch(params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
     
 
     # AE Post
     if params["period"] in ['both', 'post']:
-        latent_analog_ind = analogSearch(params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        latent_analog_ind = analogSearch(params["p"], params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
     
     dict_stats = {}
     reconstruction_Pre_Analog = []
@@ -774,6 +787,7 @@ def runComparison(params: dict)-> tuple:
             print(f'Iteration {i} finished')
 
     df_stats = pd.DataFrame.from_dict(dict_stats,orient='index',columns=['prs-diff','temp-diff','temp'])
+    Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
     df_stats.to_csv(f'./comparison-csv/{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
     return reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE
 
@@ -859,6 +873,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         idx = np.arange(len(grouped_surpass))[mask][np.argmax(grouped_surpass[mask], axis=0)[1]]
         cumsum = np.cumsum(grouped_surpass, axis=0)
         heatwave_period = time_x[(0 if idx == 0 else cumsum[idx-1][1]):cumsum[min(np.shape(cumsum)[0],idx)][1]]#.astype('datetime64[D]')
+    Path("./figures").mkdir(parents=True, exist_ok=True)
     plt.title(f'Heatwave: {heatwave_period[0].date()} - {heatwave_period[-1].date()}')
     plt.axvspan(heatwave_period[0], heatwave_period[-1], label='Heatwave period', color='crimson', alpha=0.3)
     plt.ylabel('Temperature (ºC)')
@@ -913,6 +928,8 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
     period = 'both'
     if args.period is not None:
         period = args.period
+    if 'p' not in params.keys():
+        params['p'] = 1
     # Execution of method
     if args.method == 'day' or args.method is None:
         if ident:
@@ -1157,6 +1174,8 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
       Returns
       ----------
     """
+    if 'p' not in params.keys():
+        params['p'] = 1
     # Execution of method
     if method == 'day':
         if ident:
