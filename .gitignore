@@ -2,7 +2,7 @@
 ./data/*.nc
 ./data/*.csv
 *.nc
-*.png
+figures/*.png
 *.eps
 *.pdf
 *.csv
