@@ -125,4 +125,4 @@ The arguments of `va_am()` method are the same as the outside of code version. F
 
 Collaboration[#](#collaboration "Permalink to this heading")
 ------------------------------------------------------------
-If you find any bugs/issues or have any suggestions, please open an [issue](https://github.com/cosminmarina/va_am/issues).
+If you find any bugs/issues or have any suggestions, please open an [issue](https://github.com/cosminmarina/va_am/issues/new).
