@@ -1,9 +1,6 @@
 # VA-AM
 
-<img src="/docs/_static/distribution.png" width="200" />
-<img src="/docs/_static/identification.png" width="200" />
-<img src="/docs/_static/identification2.png" width="200" />
-<img src="/docs/_static/distribution2.png" width="200" />
+<img src="/docs/_static/distribution.png" width="200" /><img src="/docs/_static/identification.png" width="200" /><img src="/docs/_static/identification2.png" width="200" /><img src="/docs/_static/distribution2.png" width="200" />
 
 
 Documentation[#](#documentation "Permalink to this heading")
@@ -53,7 +50,7 @@ VA-AM can be used inside a python code as library, or directly outside of the co
 
 ### Outside of code[#](#outside-of-code "Permalink to this heading")
 
-A quick way of using it directly from your terminal. First try the -h | –help flag as:
+A quick way of using it directly from your terminal. First try the -h | --help flag as:
 
 ```
 python -m va_am -h
@@ -64,8 +61,8 @@ Note
 You should obtain something like: 
 
 ```
-usage: __main__.py \[-h\] \[-i\] \[-m METHOD\] \[-f CONF\] \[-sf SECRET\] \[-v\] \[-t\]
-           \[-p PERIOD\] \[-sr\]
+usage: __main__.py [-h] [-i] [-m METHOD] [-f CONF] [-sf SECRET] [-v] [-t]
+           [-p PERIOD] [-sr]
 
 optional arguments:
 -h, --help            show this help message and exit
@@ -95,7 +92,7 @@ optional arguments:
 -sr, --savereconstruction
                         Flag. If true, teh reconstruction per iteration would
                         be saved in ./../../data/ folder as an
-                        reconstruction-\[name\]-\[day\]-\[period\]-\[AM/VA-AM\].nc
+                        reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc
                         file.
 ```
 
@@ -106,7 +103,7 @@ You can import [va_am](https://va-am.readthedocs.io/en/latest/va_am.html) as a l
 ```
 from va_am import
 
-\# Perform Variational Autoencoder Analogue search with default args
+# Perform Variational Autoencoder Analogue search with default args
 va_am()
 ```
 
@@ -115,7 +112,7 @@ or
 ```
 import va_am
 
-\# Perform Variational Autoencoder Analogue search with default args
+# Perform Variational Autoencoder Analogue search with default args
 va_am.va_am()
 ```
 
