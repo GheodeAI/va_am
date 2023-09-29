@@ -36,8 +36,8 @@ identification of the HW following `Russo index <https://iopscience.iop.org/arti
 `Analogue Method <https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml>`_, use the enhanced Variational Autoencoder Analogue Method, and even define own/use diferent deep learning architectures for
 the Analogue search.
 
-The source code is available at `github <https://github.com/cosminmarina/va-am>`_.
-If you find any bugs/issues or have any suggestions, please open an `issue <hhttps://github.com/cosminmarina/va-am/issues>`_.
+The source code is available at `github <https://github.com/cosminmarina/va_am>`_.
+If you find any bugs/issues or have any suggestions, please open an `issue <hhttps://github.com/cosminmarina/va_am/issues>`_.
 
 We strongly recommend that you take a look at the :doc:`How to <how_to>` section to learn how to use the method, structure a configuration file, etc.
 
@@ -62,7 +62,7 @@ Latest commit:
 
 .. code-block:: bash
 
-    pip install git+https://github.com/cosminmarina/va-am
+    pip install git+https://github.com/cosminmarina/va_am
 
 Getting Started
 ===============
@@ -154,7 +154,7 @@ Contents
    API Reference <modules>
    How to <how_to>
    License <license>
-   Changelog <https://github.com/cosminmarina/va-am>
+   Changelog <https://github.com/cosminmarina/va_am>
 
 
 Indices and tables
