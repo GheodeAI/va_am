@@ -37,7 +37,7 @@ identification of the HW following `Russo index <https://iopscience.iop.org/arti
 the Analogue search.
 
 The source code is available at `github <https://github.com/cosminmarina/va_am>`_.
-If you find any bugs/issues or have any suggestions, please open an `issue <hhttps://github.com/cosminmarina/va_am/issues>`_.
+If you find any bugs/issues or have any suggestions, please open an `issue <https://github.com/cosminmarina/va_am/issues/new>`_.
 
 We strongly recommend that you take a look at the :doc:`How to <how_to>` section to learn how to use the method, structure a configuration file, etc.
 
