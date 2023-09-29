@@ -4,19 +4,19 @@ Welcome to va_am's documentation!
 
 |img1| |img2| |img3| |img4|
 
-.. |img1| image:: ../../../examples/distribution.png
+.. |img1| image:: _static/distribution.png
     :width: 140px
     :height: 140px
 
-.. |img2| image:: ../../../examples/identification.png
+.. |img2| image:: _static/identification.png
     :width: 160px
     :height: 120px
 
-.. |img3| image:: ../../../examples/identification2.png
+.. |img3| image:: _static/identification2.png
     :width: 160px
     :height: 120px
 
-.. |img4| image:: ../../../examples/distribution2.png
+.. |img4| image:: _static/distribution2.png
     :width: 140px
     :height: 140px
 
