@@ -1,13 +1,6 @@
 va\_am package
 ==============
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   va_am.utils
 
 Submodules
 ----------

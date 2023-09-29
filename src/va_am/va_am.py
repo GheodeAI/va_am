@@ -261,9 +261,6 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
        
       Method which transform latitude/longitude degrees to index. It is used to increase the speed of the methods by using numpy arrays insted of Dataset or DataArray.
         
-      list or ndarray, int, int, int, int, int, bool
-          -> list[int]
-        
       Parameters
       ----------
       interest_region: list or ndarray
@@ -323,10 +320,7 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
       save_reconstruction
        
       Method that save the target reconstruction based on the runs maded. It do not return anything, only save the Xarray Datasets on the corresponding file on data folder. Each file have the format [name]-[period]-[method]-[time].nc.
-        
-      list or ndarray, int, int, int, int, int, bool
-          -> list[int]
-        
+
       Parameters
       ----------
       params: dict

@@ -4,6 +4,18 @@ from keras import layers
 import keras.backend as K
 
 def sampling(args):
+    """
+    Auxiliar function to perform the VAE sampling
+    
+    Parameters
+    ----------
+    args: list of keras.layer
+        A list wich contains the mean layer, standard deviation layer and de dimension of the latent space.
+    Returns
+    ----------
+    : keras.layer
+        The sampled latent space of the VAE.
+    """
     z_mean, z_log_var, latent_dim = args
     print(z_mean)
     print(z_log_var)
@@ -13,6 +25,18 @@ def sampling(args):
     return z_mean + keras.backend.exp(z_log_var) * epsilon
 
 def masking(args):
+    """
+    Auxiliar function to apply a spacial mask to a layer
+    
+    Parameters
+    ----------
+    args: list of keras.layer
+        A list wich contains the layer to be masked and the mask to be used.
+    Returns
+    ----------
+    : keras.layer
+        The input layer masked by mask.
+    """
     input, mask = args
 
     return tf.where(mask, input, 0)
@@ -80,6 +104,14 @@ class AE_conv():
 
     # Default architecture of anti-simetric AutoEncoder
     def def_arch_build(self):
+        """
+        Easy example of architecture definition. Input have to be divisible by 18 in both dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -132,6 +164,14 @@ class AE_conv():
 
     # Simplified architecture of anti-simetric AutoEncoder
     def simple_arch_build(self):
+        """
+        A very short architecture. Input have to be divisible by 18 in both dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -180,6 +220,14 @@ class AE_conv():
 
     # Batch normalization and simetric architecture of AutoEncoder
     def batched_simetric_build(self):
+        """
+        Simetric architecture with batch normalization. Input have to be divisible by 16 in both dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -234,6 +282,14 @@ class AE_conv():
 
     # Special architecture for the Heatwave with KL loss
     def kl_heatwave_arch_build(self):
+        """
+        Example of architecture for HW with KL-loss function. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -308,6 +364,14 @@ class AE_conv():
 
     # Special architecture for the Heatwave
     def heatwave_arch_build(self):
+        """
+        Example of architecture for HW. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -376,6 +440,14 @@ class AE_conv():
 
     # Special architecture for the Heatwave with mask
     def mask_heatwave_arch_build(self):
+        """
+        Example of architecture for HW with masked input. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -445,6 +517,14 @@ class AE_conv():
     
     # Simple special architecture for the Heatwave
     def simple_heatwave_arch_build(self):
+        """
+        Simplified architecture for HW. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
@@ -495,6 +575,14 @@ class AE_conv():
         print(self.autoencoder.summary())
 
     def dense_build(self):
+        """
+        Example of full-dense architecture.
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
         # Input
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1]))
 
@@ -530,8 +618,6 @@ class AE_conv():
         Here we specify the method to optimize, the loss function and,
         if we want, some metrics to show together with the loss.
         
-        string, string, string|array of strings -> 
-        
         Parameters
         ----------
         optimizer: the method to use for optimization. It sould be one
@@ -554,10 +640,7 @@ class AE_conv():
         """
         Training of the AutoEncoder.
         Here we specify the parameters for our training.
-        
-        ndarray, ndarray, int, int, bool, float, int, 
-            float, int, bool -> History
-        
+
         Parameters
         ----------
         x: input data.

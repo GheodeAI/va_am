@@ -10,7 +10,6 @@ Welcome to va_am's documentation!
    :maxdepth: 4
    :caption: Contents:
 
-   how_to
    modules
 
 

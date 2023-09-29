@@ -1,19 +1,22 @@
 va\_am package
-==================
+==============
 
-Subpackages
------------
 
-.. toctree::
-   :maxdepth: 2
-   va_am.utils
+Submodules
+----------
 
-Test to add custom and complettly manual documentation.
+va\_am.va\_am module
+--------------------
+
+.. automodule:: va_am.va_am
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
-.. automodule:: va_am.va_am
+.. automodule:: va_am
    :members:
    :undoc-members:
    :show-inheritance:

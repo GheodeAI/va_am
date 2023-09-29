@@ -12,7 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src/va_am'))
+#sys.path.insert(0, os.path.abspath('../src/va_am'))
+sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- Project information -----------------------------------------------------
@@ -47,9 +48,10 @@ add_module_names = False
 
 html_theme_options = {"show_toc_level" : 4,
 		      "navbar_start": ["navbar-logo"],
-		      #"logo": {
-		      #        "link": "https://climateintelligence.eu",
-		      #},
+		      "logo": {
+      				"image_light": "_static/va-am.png",
+      				"image_dark": "_static/va-am2.png",
+					},
 		      "navbar_center": ["navbar-nav"],
 		      "navbar_end": ["navbar-icon-links"],
 		      "navbar_persistent": ["search-button"],
@@ -63,11 +65,14 @@ html_theme_options = {"show_toc_level" : 4,
 # a list of builtin themes.
 #
 
+autodoc_member_order = 'bysource'
+
 html_sidebars = {
     "**": ["sidebar-nav-bs", "sidebar-ethical-ads"]
 }
 
 html_theme = 'pydata_sphinx_theme'
+#html_logo = '_static/va-am.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
