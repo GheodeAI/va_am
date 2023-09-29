@@ -83,7 +83,7 @@ A quick way of using it directly from your terminal. First try the -h | --help f
 .. note::
 
     You should obtain something like:
-    ::
+    .. literal::
         usage: __main__.py [-h] [-i] [-m METHOD] [-f CONF] [-sf SECRET] [-v] [-t]
                    [-p PERIOD] [-sr]
 
