@@ -1,5 +1,6 @@
 # VA-AM
 
+<img src="/docs/_static/distribution.png" width="30" />
 [![img1](/docs/_static/distribution.png)](/docs/_static/distribution.png) [![img2](/docs/_static/identification.png)](/docs/_static/identification.png) [![img3](/docs/_static/identification2.png)](/docs/_static/identification2.png) [![img4](/docs/_static/distribution2.png)](/docs/_static/distribution2.png)
 
 
@@ -21,7 +22,6 @@ It alows you to perform the identification of the HW following [Russo index](htt
 
 The source code is available at [github](https://github.com/cosminmarina/va_am). If you find any bugs/issues or have any suggestions, please open an [issue](hhttps://github.com/cosminmarina/va_am/issues).
 
-We strongly recommend that you take a look at the [How to](how_to.html) section to learn how to use the method, structure a configuration file, etc.
 
 Installation[#](#installation "Permalink to this heading")
 ----------------------------------------------------------
@@ -31,19 +31,19 @@ Latest version:
 Using pip
 
 ```
-pip install va\_am
+pip install va_am
 ```
 
 Using conda
 
 ```
-conda install \-c conda-forge va\_am
+conda install \-c conda-forge va_am
 ```
 
 Latest commit:
 
 ```
-pip install git+https://github.com/cosminmarina/va\_am
+pip install git+https://github.com/cosminmarina/va_am
 ```
 
 Getting Started[#](#getting-started "Permalink to this heading")
@@ -56,7 +56,7 @@ VA-AM can be used inside a python code as library, or directly outside of the co
 A quick way of using it directly from your terminal. First try the -h | –help flag as:
 
 ```
-python \-m va\_am \-h
+python \-m va_am \-h
 ```
 
 Note
@@ -64,7 +64,7 @@ Note
 You should obtain something like: 
 
 ```
-usage: \_\_main\_\_.py \[\-h\] \[\-i\] \[\-m METHOD\] \[\-f CONF\] \[\-sf SECRET\] \[\-v\] \[\-t\]
+usage: __main__.py \[\-h\] \[\-i\] \[\-m METHOD\] \[\-f CONF\] \[\-sf SECRET\] \[\-v\] \[\-t\]
            \[\-p PERIOD\] \[\-sr\]
 
 optional arguments:
@@ -101,22 +101,22 @@ optional arguments:
 
 ### Inside of code[#](#inside-of-code "Permalink to this heading")
 
-You can import [va\_am](https://va-am.readthedocs.io/en/latest/va_am.html) as a library in your code and use the equivalent method:
+You can import [va_am](https://va-am.readthedocs.io/en/latest/va_am.html) as a library in your code and use the equivalent method:
 
 ```
-from va\_am import
+from va_am import
 
 \# Perform Variational Autoencoder Analogue search with default args
-va\_am()
+va_am()
 ```
 
 or
 
 ```
-import va\_am
+import va_am
 
 \# Perform Variational Autoencoder Analogue search with default args
-va\_am.va\_am()
+va_am.va_am()
 ```
 
 Note
