@@ -73,17 +73,18 @@ VA-AM can be used inside a python code as library, or directly outside of the co
 Outside of code
 ***************
 
-A quick way of using it directly from your terminal. First try the -h | --help flag as:
+A quick way of using it directly from your terminal. First try the ``-h`` | ``--help`` flag as:
 
 .. code-block::
 
     python -m va_am -h
 
 
-.. note::
+.. hint::
 
     You should obtain something like:
-    .. literal::
+    ::
+
         usage: __main__.py [-h] [-i] [-m METHOD] [-f CONF] [-sf SECRET] [-v] [-t]
                    [-p PERIOD] [-sr]
 
@@ -126,7 +127,7 @@ You can import :doc:`va_am <va_am>` as a library in your code and use the equiva
 
 .. code-block:: python
 
-    from va_am import
+    from va_am import va_am
 
     # Perform Variational Autoencoder Analogue search with default args
     va_am()

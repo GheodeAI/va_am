@@ -1437,6 +1437,40 @@ def va_am(ident:bool=False, method:str='day', config_file:str='params.json', sec
       Returns
       ----------
     """
+    # Default parameters
+    params = {
+        "season":                   "all",
+        "name":                     "-per_day-france2003",
+        "latitude_min":             32,
+        "latitude_max":             70,
+        "longitude_min":             -30,
+        "longitude_max":              30,
+        "pre_init":                 '1851-01-06',
+        "pre_end":                  '1950-12-31',
+        "post_init":                '1951-01-01',
+        "post_end":                 '2014-12-28',
+        "data_of_interest_init":    '2003-08-09',
+        "data_of_interest_end":     '2003-08-09',
+        "load_AE":                  True,
+        "load_AE_pre":              True, # only for AE post comparison
+        "file_AE_pre":              './models/AE_pre.h5',
+        "file_AE_post":             './models/AE_post.h5',
+        "latent_dim":               600,
+        "use_VAE":                  True,
+        "with_cpu":                 False,
+        "n_epochs":                 300,
+        "k":                        20,
+        "iter":                     20,
+        "interest_region":          [4,8,12,19],
+        "resolution":               2,
+        "interest_region_type":     "idx", # idx or coord
+        "per_what":                 "per_day", # per_day or per_week
+        "remove_year":              False,
+        "replace_choice":           False,
+        "arch":                     5,
+        "teleg":                    False,
+        "verbose":                  False
+    }
     params_multiple = None
     file_params_name = config_file
     n_execs = 5
@@ -1488,83 +1522,16 @@ def main():
     params = {
         "season":                   "all",
         "name":                     "-per_day-france2003",
-        # france2003 & spain1995 & russia2010 & poland1994 & coldwave-spain1956 & coldwave-russia1978 & coldwave-esteurope2012
         "latitude_min":             32,
         "latitude_max":             70,
-        # germany2006 & uk2013
-        #"latitude_min":             34,
-        #"latitude_max":             72,
-        # greece1987
-        #"latitude_min":             28,
-        #"latitude_max":             66,
-        
-        # france2003 & spain1995 & germany2006 & uk2013 & coldwave-spain1956
         "longitude_min":             -30,
         "longitude_max":              30,
-        # russia2010
-        #"longitude_min":             20,
-        #"longitude_max":              80,
-        # poland1994
-        #"longitude_min":             -20,
-        #"longitude_max":              40,
-        # greece1987
-        #"longitude_min":             -10,
-        #"longitude_max":              50,
-        # coldwave-russia1978
-        #"longitude_min":             10,
-        #"longitude_max":              70,
-        # coldwave-esteurope2012
-        #"longitude_min":             -14,
-        #"longitude_max":              46,
         "pre_init":                 '1851-01-06',
         "pre_end":                  '1950-12-31',
         "post_init":                '1951-01-01',
         "post_end":                 '2014-12-28',
-        # france2003
-        #"data_of_interest_init":    '2003-08-04',
-        #"data_of_interest_end":     '2003-08-10',
-        # per_day1-france2003
-        #"data_of_interest_init":    '2003-08-08',
-        #"data_of_interest_end":     '2003-08-08',
-        # per_day2-france2003
         "data_of_interest_init":    '2003-08-09',
         "data_of_interest_end":     '2003-08-09',
-        # per_day3-france2003
-        #"data_of_interest_init":    '2003-08-12',
-        #"data_of_interest_end":     '2003-08-12',
-        # no-heatwave
-        #"data_of_interest_init":    '2008-08-04',
-        #"data_of_interest_end":     '2008-08-10',
-        # spain1995
-        #"data_of_interest_init":    '1995-07-17',
-        #"data_of_interest_end":     '1995-07-23',
-        # russia2010
-        #"data_of_interest_init":    '2010-08-02',
-        #"data_of_interest_end":     '2010-08-08',
-        # newrussia2010
-        #"data_of_interest_init":    '2010-07-26',
-        #"data_of_interest_end":     '2010-08-01',
-        # poland1994
-        #"data_of_interest_init":    '1994-07-27',
-        #"data_of_interest_end":     '1994-08-03',
-        # germany2006
-        #"data_of_interest_init":    '2006-07-17',
-        #"data_of_interest_end":     '2006-07-23',
-        # uk2013
-        #"data_of_interest_init":    '2013-07-15',
-        #"data_of_interest_end":     '2013-07-21',
-        # greece1987
-        #"data_of_interest_init":    '1987-07-20',
-        #"data_of_interest_end":     '1987-07-26',
-        # coldwave-russia1978
-        #"data_of_interest_init":    '1978-12-25',
-        #"data_of_interest_end":     '1978-12-31',
-        # coldwave-spain1956
-        #"data_of_interest_init":    '1956-01-30',
-        #"data_of_interest_end":     '1956-02-05',
-        # coldwave-esteurope2012
-        #"data_of_interest_init":    '2012-02-06',
-        #"data_of_interest_end":     '2012-02-12',
         "load_AE":                  True,
         "load_AE_pre":              True, # only for AE post comparison
         "file_AE_pre":              './models/AE_pre.h5',
@@ -1575,32 +1542,7 @@ def main():
         "n_epochs":                 300,
         "k":                        20,
         "iter":                     20,
-        # france2003
         "interest_region":          [4,8,12,19],
-        # spain1995
-        #"interest_region":          [1,5,10,17],
-        # russia2010
-        #"interest_region":          [1,10,10,20],
-        # poland1994
-        #"interest_region":          [6,10,17,23],
-        # germany2006
-        #"interest_region":          [4,10,13,23],
-        # uk2013
-        #"interest_region":          [6,12,8,18],
-        # southuk2013
-        #interest_region":          [6,9,9,16],
-        # verysouthuk2013
-        #"interest_region":          [6,8,9,16],
-        # greece1987
-        #"interest_region":          [2,7,13,20],
-        # littlegreece1987
-        #"interest_region":          [2,6,14,20],
-        # coldwave-russia1978
-        #"interest_region":          [8,10,12,14],
-        # coldwave-spain1956
-        #"interest_region":          [1,5,10,18],
-        # coldwave-esteurope2012
-        #"interest_region":          [5,11,17,27],
         "resolution":               2,
         "interest_region_type":     "idx", # idx or coord
         "per_what":                 "per_day", # per_day or per_week
