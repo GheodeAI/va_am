@@ -196,7 +196,7 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
     return res
 
 
-def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
+def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
     """
       analogSearch                                       
        
@@ -216,6 +216,8 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
           Time DataArray corresponding to the driver/predictor data where is searching.
       data_temp: Dataset
           Temperature Dataset used to check the target value.
+      enhanced_distance: bool
+          Flag that decides if local proximity has to be performed or no.
       threshold: int or float
           Threshold used in analogSearch to compute local proximity.
       img_size: list or ndarray
@@ -242,7 +244,12 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
     d_p = np.reshape(data_prs, (d_p_s[0],int(np.size(data_prs)/d_p_s[0])))
     dist = minkowski_distance(d_of_i, d_p, p=p)
 
-    data_diff = np.abs(data_prs-data_of_interest_prs)
+    if enhanced_distance:
+        data_diff = np.abs(data_prs-data_of_interest_prs)
+        d = np.zeros_like(data_diff)
+        d[data_diff <= threshold] = -1
+        ax_to_sum = np.arange(len(np.shape(data_diff)))[1:]
+        dist += np.sum(d, axis=tuple(ax_to_sum)) + threshold_offset_counter
 
     # d = np.zeros_like(data_diff)
     # d[data_diff <= threshold] = -1
@@ -353,40 +360,42 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
     current = datetime.datetime.now()
     int_reg = params["interest_region"]
     resolution = params["resolution"]
-    if params["period"] in ["both", "pre"]:
-        reconstruction_Pre_Analog = np.mean(reconstructions_Pre_Analog, axis=0)
-        print('Size Recons Pre Analog: ', np.size(reconstruction_Pre_Analog))
-        reconstruction_Post_Analog = np.mean(reconstructions_Post_Analog, axis=0)
-        print('Size Recons Post Analog: ', np.size(reconstruction_Post_Analog))
-        xr_Pre_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Pre_Analog)),
-                                   coords=dict(reconstruction = np.arange(params["iter"]),
-                                               latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
-                                               longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
-                                              ))
-        xr_Pre_Analog.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
-        xr_Post_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_Analog)),
-                                   coords=dict(reconstruction = np.arange(params["iter"]),
-                                               latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
-                                               longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
-                                              ))
-        xr_Post_Analog.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
-    if params["period"] in ["both", "post"]:
-        reconstruction_Pre_AE = np.mean(reconstructions_Pre_AE, axis=0)
-        print('Size Recons Pre AE: ', np.size(reconstruction_Pre_AE))
-        reconstruction_Post_AE = np.mean(reconstructions_Post_AE, axis=0)
-        print('Size Recons Post AE: ', np.size(reconstruction_Post_AE))
-        xr_Pre_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Pre_AE)),
-                               coords=dict(reconstruction = np.arange(params["iter"]),
-                                           latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
-                                           longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
-                                          ))
-        xr_Pre_AE.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
-        xr_Post_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_AE)),
-                                coords=dict(reconstruction = np.arange(params["iter"]),
-                                            latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
-                                            longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
-                                           ))
-        xr_Post_AE.to_netcdf(f'./../../data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+    if params["save_recons"]:
+        if params["period"] in ["both", "pre"]:
+            Path("./data").mkdir(parents=True, exist_ok=True)
+            reconstruction_Pre_Analog = np.mean(reconstructions_Pre_Analog, axis=0)
+            print('Size Recons Pre Analog: ', np.size(reconstruction_Pre_Analog))
+            # reconstruction_Post_Analog = np.mean(reconstructions_Post_Analog, axis=0)
+            # print('Size Recons Post Analog: ', np.size(reconstruction_Post_Analog))
+            xr_Pre_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Pre_Analog)),
+                                    coords=dict(reconstruction = np.arange(params["iter"]),
+                                                latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
+                                                longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
+                                                ))
+            xr_Pre_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+            # xr_Post_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_Analog)),
+            #                            coords=dict(reconstruction = np.arange(params["iter"]),
+            #                                        latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
+            #                                        longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
+            #                                       ))
+            # xr_Post_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+        if params["period"] in ["both", "post"]:
+            # reconstruction_Pre_AE = np.mean(reconstructions_Pre_AE, axis=0)
+            # print('Size Recons Pre AE: ', np.size(reconstruction_Pre_AE))
+            reconstruction_Post_AE = np.mean(reconstructions_Post_AE, axis=0)
+            print('Size Recons Post AE: ', np.size(reconstruction_Post_AE))
+            # xr_Pre_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Pre_AE)),
+            #                        coords=dict(reconstruction = np.arange(params["iter"]),
+            #                                    latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
+            #                                    longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
+            #                                   ))
+            # xr_Pre_AE.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+            xr_Post_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_AE)),
+                                    coords=dict(reconstruction = np.arange(params["iter"]),
+                                                latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
+                                                longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
+                                            ))
+            xr_Post_AE.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
 
 def runComparison(params: dict)-> tuple:
     """
@@ -649,40 +658,38 @@ def runComparison(params: dict)-> tuple:
     
     # Analog comparison
     ## Stats analog
-    if params["period"] == 'both':
-        stat_data = np.concatenate(((indust_prs-data_of_interest_prs).flatten(),(pre_indust_prs-data_of_interest_prs).flatten()),axis=0)
-    elif params["period"] == 'pre':
-        stat_data = (pre_indust_prs-data_of_interest_prs).flatten()
-    else:
-        stat_data = (indust_prs-data_of_interest_prs).flatten()
-    stat_mean = np.abs(stat_data).mean()
-    stat_std = np.abs(stat_data).std()
-    stat_max = np.abs(stat_data).max()
-    stat_min = np.abs(stat_data).min()
-
-    print(f'Mean analog: {stat_mean}')
-    print(f'Std analog: {stat_std}')
-    print(f'Max anlog: {stat_max}')
-    print(f'Min analog: {stat_min}')
-    print(f'len analog: {len(stat_data)}')
-    print(f'len th analog: {len(stat_data[np.abs(stat_data) < (stat_mean-0.3*stat_std)])}')
+    if params["enhanced_distance"]:
+        if params["period"] == 'both':
+            stat_data = np.concatenate(((indust_prs-data_of_interest_prs).flatten(),(pre_indust_prs-data_of_interest_prs).flatten()),axis=0)
+        elif params["period"] == 'pre':
+            stat_data = (pre_indust_prs-data_of_interest_prs).flatten()
+        else:
+            stat_data = (indust_prs-data_of_interest_prs).flatten()
+        stat_mean = np.abs(stat_data).mean()
+        stat_std = np.abs(stat_data).std()
+        stat_max = np.abs(stat_data).max()
+        stat_min = np.abs(stat_data).min()
+        print(f'Mean analog: {stat_mean}')
+        print(f'Std analog: {stat_std}')
+        print(f'Max anlog: {stat_max}')
+        print(f'Min analog: {stat_min}')
+        print(f'len analog: {len(stat_data)}')
+        print(f'len th analog: {len(stat_data[np.abs(stat_data) < (stat_mean-0.3*stat_std)])}')
 
     ## Stats AE
-    if params["period"] == 'both':
-        encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, pre_indust_prs, indust_prs, data_of_interest_prs)
-    elif params["period"] == 'pre':
-        encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=pre_indust_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
-    else:
-        print(type(AE_ind))
-        print(type(indust_prs))
-        print(type(data_of_interest_prs))
-        encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=indust_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
-    print(f'Mean: {encoded.mean()}')
-    print(f'Std: {encoded.std()}')
-    print(f'Max AE: {encoded.max()}')
-    print(f'Min AE: {encoded.min()}')
-    print(f'len AE: {len(encoded)}')
-    print(f'len th AE: {len(encoded[encoded < (encoded.mean() - 0.3*encoded.std())])}')
+    if params["enhanced_distance"]:
+        if params["period"] == 'both':
+            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, pre_indust_prs, indust_prs, data_of_interest_prs)
+        elif params["period"] == 'pre':
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=pre_indust_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+        else:
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=indust_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+        print(f'Mean: {encoded.mean()}')
+        print(f'Std: {encoded.std()}')
+        print(f'Max AE: {encoded.max()}')
+        print(f'Min AE: {encoded.min()}')
+        print(f'len AE: {len(encoded)}')
+        print(f'len th AE: {len(encoded[encoded < (encoded.mean() - 0.3*encoded.std())])}')
 
     ## Time and interest region
     current = datetime.datetime.now()
@@ -692,8 +699,12 @@ def runComparison(params: dict)-> tuple:
 
     ## This is the threshold of difference between driver/predictor maps and target
     ## to be acepted as low difference
-    threshold = stat_mean-0.3*stat_std
-    threshold_AE = encoded.mean()-0.3*encoded.std()
+    ## Only used for the local proximity of enhanced distance
+    threshold = 0
+    threshold_AE = 0
+    if params["enhanced_distance"]:
+        threshold = stat_mean-0.3*stat_std
+        threshold_AE = encoded.mean()-0.3*encoded.std()
 
     ## Encode
     if params["with_cpu"]:
@@ -729,21 +740,21 @@ def runComparison(params: dict)-> tuple:
 
     # Analog Pre
     if params["period"] in ['both', 'pre']:
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
 
     # Analog Post
     if params["period"] in ['both', 'post']:
-        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
     
 
     # AE Pre
     if params["period"] in ['both', 'pre']:
-        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
     
 
     # AE Post
     if params["period"] in ['both', 'post']:
-        latent_analog_ind = analogSearch(params["p"], params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        latent_analog_ind = analogSearch(params["p"], params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
     
     dict_stats = {}
     reconstruction_Pre_Analog = []
@@ -955,6 +966,10 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             params["period"] = period
             if "p" not in params.keys():
                 params["p"] = 2
+            if "enhanced_distance" not in params.keys():
+                params["enhanced_distance"] = False
+            if "save_recons" not in params.keys():
+                params["save_recons"] = save_recons
             identify_heatwave_days(params)
             message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
             if teleg:
@@ -995,6 +1010,10 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             params["verbose"] = verb
         if "p" not in params.keys():
             params["p"] = 2
+        if "enhanced_distance" not in params.keys():
+            params["enhanced_distance"] = False
+        if "save_recons" not in params.keys():
+            params["save_recons"] = save_recons
         # Methods with configfile
         if args.method == 'days':
             reconstructions_Pre_Analog = []
@@ -1009,7 +1028,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params["data_of_interest_init"] = init
                 params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                 reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                if save_recons:
+                if params["save_recons"]:
                     reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                     reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                     reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1026,7 +1045,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                     params["data_of_interest_init"] = init
                     params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                     reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                    if save_recons:
+                    if params["save_recons"]:
                         reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                         reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1045,7 +1064,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                     params["data_of_interest_init"] = init
                     params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                     reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                    if save_recons:
+                    if params["save_recons"]:
                         reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                         reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1062,7 +1081,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                     params["data_of_interest_init"] = init
                     params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                     reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                    if save_recons:
+                    if params["save_recons"]:
                         reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                         reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1083,7 +1102,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                         params["data_of_interest_init"] = init
                         params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                         reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                        if save_recons:
+                        if params["save_recons"]:
                             reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                             reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1104,7 +1123,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                         params["data_of_interest_init"] = init
                         params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                         reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                        if save_recons:
+                        if params["save_recons"]:
                             reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                             reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1127,7 +1146,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                             params["data_of_interest_init"] = init
                             params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                             reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                            if save_recons:
+                            if params["save_recons"]:
                                 reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                                 reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                                 reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1200,6 +1219,10 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             params["period"] = period
             if "p" not in params.keys():
                 params["p"] = 2
+            if "enhanced_distance" not in params.keys():
+                params["enhanced_distance"] = False
+            if "save_recons" not in params.keys():
+                params["save_recons"] = save_recons
             identify_heatwave_days(params)
             message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
             if teleg:
@@ -1237,6 +1260,10 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             params["verbose"] = verb
         if "p" not in params.keys():
             params["p"] = 2
+        if "enhanced_distance" not in params.keys():
+            params["enhanced_distance"] = False
+        if "save_recons" not in params.keys():
+            params["save_recons"] = save_recons
         # Methods with configfile
         if method == 'days':
             reconstructions_Pre_Analog = []
@@ -1251,7 +1278,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params["data_of_interest_init"] = init
                 params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                 reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                if save_recons:
+                if params["save_recons"]:
                     reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                     reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                     reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1268,7 +1295,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                     params["data_of_interest_init"] = init
                     params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                     reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                    if save_recons:
+                    if params["save_recons"]:
                         reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                         reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1287,7 +1314,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                     params["data_of_interest_init"] = init
                     params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                     reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                    if save_recons:
+                    if params["save_recons"]:
                         reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                         reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1304,7 +1331,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                     params["data_of_interest_init"] = init
                     params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                     reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                    if save_recons:
+                    if params["save_recons"]:
                         reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                         reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1325,7 +1352,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                         params["data_of_interest_init"] = init
                         params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                         reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                        if save_recons:
+                        if params["save_recons"]:
                             reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                             reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1346,7 +1373,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                         params["data_of_interest_init"] = init
                         params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                         reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                        if save_recons:
+                        if params["save_recons"]:
                             reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                             reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1369,7 +1396,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                             params["data_of_interest_init"] = init
                             params["data_of_interest_end"] = params_multiple["data_of_interest_end"][idx]
                             reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE = runComparison(params)
-                            if save_recons:
+                            if params["save_recons"]:
                                 reconstructions_Pre_Analog.append(reconstruction_Pre_Analog)
                                 reconstructions_Post_Analog.append(reconstruction_Post_Analog)
                                 reconstructions_Pre_AE.append(reconstruction_Pre_AE)
@@ -1454,7 +1481,7 @@ def main():
     parser.add_argument("-v", "--verbose", dest='verb', action="store_true", help="Flag. If true, overwrite verbose param.")
     parser.add_argument("-t", "--teleg", dest='teleg', action="store_true", help="Flag. If true, exceptions and warnings will be sent to Telegram Bot.")
     parser.add_argument("-p", "--period", dest='period', help="Specify the period where to perform the operations between: \n 'both' (default), 'pre' or 'post'")
-    parser.add_argument("-sr", "--savereconstruction", dest='save_recons', action="store_true", help="Flag. If true, teh reconstruction per iteration would be saved in ./../../data/ folder as an reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc file.")
+    parser.add_argument("-sr", "--savereconstruction", dest='save_recons', action="store_true", help="Flag. If true, the reconstruction per iteration would be saved in ./../../data/ folder as an reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc file.")
     args = parser.parse_args()
     
     # Default parameters

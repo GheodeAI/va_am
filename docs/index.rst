@@ -113,7 +113,7 @@ A quick way of using it directly from your terminal. First try the -h | --help f
                                 Specify the period where to perform the operations
                                 between: 'both' (default), 'pre' or 'post'
         -sr, --savereconstruction
-                                Flag. If true, teh reconstruction per iteration would
+                                Flag. If true, the reconstruction per iteration would
                                 be saved in ./../../data/ folder as an
                                 reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc
                                 file.
