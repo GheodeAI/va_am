@@ -437,11 +437,11 @@ def runComparison(params: dict)-> tuple:
 
     # Default values
     if not "temp_dataset" in params:
-        params["temp_dataset"] = '../../data/air.sig995.day.nc'
+        params["temp_dataset"] = 'data/air.sig995.day.nc'
     if not "temp_var_name" in params:
         params["temp_var_name"] = 'air'
     if not "prs_dataset" in params:
-        params["prs_dataset"] = '../../data/prmsl.day.mean.nc'
+        params["prs_dataset"] = 'data/prmsl.day.mean.nc'
     # Load data
     temp=xr.load_dataset(params["temp_dataset"], engine='netcdf4')   #Temperatures 
     prs=xr.load_dataset(params["prs_dataset"], engine='netcdf4')    #Atmospheric Pressure
@@ -823,7 +823,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     """
     # Load data
     if not "ident_dataset" in params:
-        params["ident_dataset"] = '../../data/data_dailyMax_t2m_1940-2022.nc'
+        params["ident_dataset"] = 'data/data_dailyMax_t2m_1940-2022.nc'
     if not "ident_var_name" in params:
         params["ident_var_name"] = 't2m_dailyMax'
     data_temp=xr.load_dataset(params["ident_dataset"], engine='netcdf4') #Temperatures
@@ -1481,7 +1481,7 @@ def main():
     parser.add_argument("-v", "--verbose", dest='verb', action="store_true", help="Flag. If true, overwrite verbose param.")
     parser.add_argument("-t", "--teleg", dest='teleg', action="store_true", help="Flag. If true, exceptions and warnings will be sent to Telegram Bot.")
     parser.add_argument("-p", "--period", dest='period', help="Specify the period where to perform the operations between: \n 'both' (default), 'pre' or 'post'")
-    parser.add_argument("-sr", "--savereconstruction", dest='save_recons', action="store_true", help="Flag. If true, the reconstruction per iteration would be saved in ./../../data/ folder as an reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc file.")
+    parser.add_argument("-sr", "--savereconstruction", dest='save_recons', action="store_true", help="Flag. If true, the reconstruction per iteration would be saved in ./data/ folder as an reconstruction-[name]-[day]-[period]-[AM/VA-AM].nc file.")
     args = parser.parse_args()
     
     # Default parameters
