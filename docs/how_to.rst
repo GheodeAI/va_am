@@ -59,37 +59,141 @@ Then, we provide a list of all posible parameters, the type of parameter and a b
 each one:
 
 
-`str <https://docs.python.org/3/library/stdtypes.html#text-sequence-type-str>`_
-`list <https://docs.python.org/3/library/stdtypes.html#sequence-types-list-tuple-range>`_
-`int <https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex>`_
-`float <https://docs.python.org/3/library/stdtypes.html#numeric-types-int-float-complex>`_
-`bool <https://docs.python.org/3/library/stdtypes.html#boolean-type-bool>`_
 
-
-==================  ===================  ========================================== 
-Parameter           Type                 Description
-==================  ===================  ========================================== 
-season              str or list of str   String (or list of strings) that Specify 
-                                         in wich season to perform the method,
-                                         between: ``spring``, ``summer``, ``autumn``
-                                         , ``winter``, ``spring-summer``,
-                                         ``autumn-winter`` or ``all`` period.
-name                str                  Arbitrary name for identification of the
-                                         execution/simulation and result file.
-latitude/longitude  int                  The defined search region in terms of 
-                                         minimal and maximal latitude and 
-                                         longitude.
-==================  ===================  ========================================== 
+====================  ===================  ========================================== 
+Parameter             Type                 Description
+====================  ===================  ========================================== 
+season                str or list of str   String (or list of strings) that Specify 
+                                           in wich season to perform the method,
+                                           between: ``spring``, ``summer``, ``autumn``
+                                           , ``winter``, ``spring-summer``,
+                                           ``autumn-winter`` or ``all`` period.
+name                  str                  Arbitrary name for identification of the
+                                           execution/simulation and result file.
+latitude/longitude    int                  The defined search region in terms of 
+                                           minimal and maximal latitude and 
+                                           longitude.
+interest_region       list of int          Defined interest region where the
+                                           reconstruction has to be maded, in terms
+                                           of initial and end latitude and logitude.
+                                           In should be a subregion of the defined
+                                           search region. Otherwise it could be
+                                           also the entire search region, but not
+                                           bigger that it. See
+                                           ``interest_region_type`` parameter for 
+                                           more details.
+interest_region_type  str                  Define if the ``interest_region`` list
+                                           refers to list/array index positions
+                                           (``idx`` option) or to spatial 
+                                           coordinates (``coord`` option).
+resolution            int                  Coordinates resolution of the dataset
+                                           (Defaul value ``2``).
+pre/post              str                  String with datetime of start (_init) and
+                                           end (_end) of what we consider ``pre`` and
+                                           ``post`` industrial data of our datasets.
+                                           We can divide the datasets in 2 different 
+                                           states to analyse, or use only one of them
+                                           (e.g. post) to analyse all your datasets.
+period                str                  String that indicates in wich period the 
+                                           analysis will be performed. If could be
+                                           ``both`` (default), only ``pre`` or only
+                                           ``post``.
+data_of_interest      str                  Same as previous, but for specify which is
+                                           your interest datetime. (See 
+                                           :ref:`Identify <identify>`)
+load_AE               bool                 Flag that specify if the VA sould be 
+                                           loaded from the ``file_AE``. If ``false``,
+                                           the VA would be re-trained.
+load_AE_pre           bool                 Same as previous flag, but only for VA in 
+                                           ``pre`` epoch.
+file_AE               str                  Path to where to save the trained models
+                                           of VA for ``pre`` and ``post``. If
+                                           ``load_AE`` is true, also represents from
+                                           where the models will be loaded.
+latent_dim            int                  Latent (or code) dimension to which the 
+                                           predictor/driver should be reduced (or 
+                                           codified).
+use_VAE               bool                 Flag. If ``true`` and the ``arch`` is
+                                           compatible, it will use a Variational 
+                                           Autoencoder instead of a normal
+                                           Autoencoder architecture.
+with_cpu              bool                 Flag that indicate if the CPU or GPU
+                                           version of tensorflow should be used, in
+                                           case of having (or not) a GPU.
+n_epochs              int                  Number of maximum epoch of training step.
+n_execs               int                  If method is one of ``execs``,
+                                           ``seasons-execs``, ``latents-execs`` or
+                                           ``latents-seasons-execs``, it indicates
+                                           the number of executions to perform with 
+                                           the model (Defaul value ``5``).
+k                     int                  How many analogue situation to select from
+                                           the nearest ones. If ``k = 3`` the method
+                                           will select the 3 nearest analogue
+                                           situations. (Default value is ``20``).
+iter                  int                  Number of random extraction to perform
+                                           from the ``k`` nearest analogues, in 
+                                           order to make a reconstruction of the 
+                                           event.
+per_what              str                  String to specify if the analysis should 
+                                           be diary (``per_day``) or weekly
+                                           (``per_week``). Until now, this are the 
+                                           available option. In later versions montly
+                                           and yearly analysis will be avaiable.
+remove_year           bool                 Flag that indicates if the year of the 
+                                           interest period should be removed entirely
+                                           or not. If false, only the period between
+                                           ``data_of_interest_init`` and
+                                           ``data_of_interest_end`` will be removed 
+                                           from the dataset.
+replace_choice        bool                 Flag that determines if the ``iter``
+                                           random selection have to be perfomed with 
+                                           (``true``) or without (``false``)
+                                           replacement.
+arch                  int                  Wich architecture of the available has to
+                                           to be used. See
+                                           `section <https://va-am.readthedocs.io/en/
+                                           latest/va_am.utils.html#va_am.utils.AutoEn
+                                           coders.AE_conv>`_
+                                           for the available architectures.
+verbose               bool                 If ``true``, several prints and warnings
+                                           during the exectution will be showed. Also
+                                           can be controled by ``-v`` | ``--verbose``
+                                           flag or ``verbose`` parameter of the 
+                                           outside and inside code execution of
+                                           program.
+temp/prs_dataset      str                  Path to target (temp) and predictor/driver
+                                           (prs) datasets (``netcdf4`` or ``grib``).
+ident_dataset         str                  Path to dataset where the identification
+                                           will be performed. It could be the same 
+                                           (or not) as the target dataset.
+temp_var_name         str                  Name of target variable in the dataset
+                                           (default value ``air``).
+p                     int                  Wich p-Minkowski distance to perform while
+                                           the analog search, where taxicab
+                                           distance is ``p=1``, euclidean distance is
+                                           ``p=2``, and so on (default value ``2``)
+enhanced_distance     bool                 Flag that indicates if the enhanced local
+                                           proximity criterion should be used along
+                                           with the p-Minkowski distance.
+save_recons           bool                 Flag that indicates if the reconstruction
+                                           of the target event should be saved
+                                           (default value ``false``).
+percentile            int                  Wich percentile should be used during the
+                                           identification step (default value
+                                           ``90``).
+====================  ===================  ========================================== 
 
 
 Functionality
 -------------
 
+.. _identify:
+
 Identify heat waves
 *******************
 
-Analogue search
-***************
+Analog search
+*************
 
 VA-AM methods
 *************

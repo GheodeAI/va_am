@@ -96,8 +96,8 @@ A quick way of using it directly from your terminal. First try the ``-h`` | ``--
                                 'latents-execs' or 'latents-seasons-execs'
         -m METHOD, --method METHOD
                                 Specify an method to execute between: 'day' (default),
-                                'days', 'seasons', 'execs', 'latents', 'seasons-
-                                execs', 'latents-execs' or 'latents-seasons-execs'
+                                'days', 'seasons', 'execs', 'latents', 'seasons-execs',
+                                'latents-execs' or 'latents-seasons-execs'
         -f CONF, --configfile CONF
                                 JSON file with configuration of parameters. If not
                                 specified and 'method' require the file, it will be
