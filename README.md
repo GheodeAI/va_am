@@ -1,6 +1,6 @@
 # VA-AM
 
-<img src="/docs/_static/distribution.png" width="200" /> <img src="/docs/_static/identification.png" width="200" /> <img src="/docs/_static/identification2.png" width="200" /> <img src="/docs/_static/distribution2.png" width="200" />
+<img src="https://github.com/cosminmarina/va_am/blob/master/docs/_static/distribution.png" width="200" /> <img src="https://github.com/cosminmarina/va_am/blob/master/docs/_static/identification.png" width="200" /> <img src="https://github.com/cosminmarina/va_am/blob/master/docs/_static/identification2.png" width="200" /> <img src="https://github.com/cosminmarina/va_am/blob/master/docs/_static/distribution2.png" width="200" />
 
 
 Documentation[#](#documentation "Permalink to this heading")
@@ -15,7 +15,7 @@ The documentation is available [here](https://va-am.readthedocs.io/).
 
 Description[#](#description "Permalink to this heading")
 --------------------------------------------------------
-<img src="/docs/_static/va-am2.png" width="200" />
+<img src="https://github.com/cosminmarina/va_am/blob/master/docs/_static/va-am2.png" width="200" />
 
 VA-AM is a Python package based on the deep learning enhancement of the classical statistical **Analogue Method**. It provides several tools to analyse climatological **extreme events**, particularly **heat waves** (HW from now on).
 
