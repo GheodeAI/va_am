@@ -4,6 +4,7 @@ How to...?
 .. contents::
     :local:
 
+.. _config:
 
 Configuration file
 ------------------
@@ -187,16 +188,87 @@ percentile            int                  Wich percentile should be used during
 Functionality
 -------------
 
+This package provide, for now, the below functionality. More are expected in future versions.
+The `github <https://github.com/cosminmarina/va_am>`_ repository have some example of
+configuration files for some well known heat waves, but you should first check the
+:ref:`Configuration file  <config>` section.
+
 .. _identify:
 
 Identify heat waves
 *******************
 
+We can perform the identifitacion of the heat wave period, following the definition from `Russo <http://doi.org/10.1088/1748-9326/10/12/124003>`_
+paper. You will need a dataset of, ideally, maximum daily (or weekly) temperature as ``ident_dataset``.
+From that you can perform the identification by by ``-i`` | ``--identifyhw`` flag or ``ident`` parameter as shown below,
+with the corresponding :ref:`Configuration file  <config>`. 
+
+.. code-block:: bash
+
+    # Outside of the python code
+    $ python -m va_am -i -f "path/to/config-file" ...
+
+.. code-block:: python
+
+    # Inside of the python code
+    from va_am import va_am
+    va_am(ident=True, config_file="path/to/config-file", ...)
+
+Default methods of package are for :ref:`Analog search <analog-search>` or :ref:`Va-AM <va-am-methods>`,
+so you can face 2 different scenarios: you will want to make de itentification as a first step of the 
+other methods, or you will want to only make the identification.
+
+In case you will use the identification as a first step of other methods, it is compatible with all methods
+except ``day``. E.g., for method ``execs``:
+
+.. code-block:: bash
+
+    # Outside of the python code
+    $ python -m va_am -i -m execs -f "path/to/config-file" ...
+
+.. code-block:: python
+
+    # Inside of the python code
+    from va_am import va_am
+    va_am(ident=True, method="execs", config_file="path/to/config-file",  ...)
+
+In case you will use only the identification, is not required to specify any method. If the ``-i`` |
+``--identifyhw`` flag is used, it will return a warning like ``Indentify Heat wave period (flag -i  
+--identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this
+will not be executed`` indicating that only the identification is going to be performed (instead of
+defauls ``day`` method).
+
+.. code-block:: bash
+
+    # Outside of the python code
+    $ python -m va_am -i -f "path/to/config-file" ...
+
+.. code-block:: python
+
+    # Inside of the python code
+    from va_am import va_am
+    va_am(ident=True, config_file="path/to/config-file",  ...)
+
+.. note::
+    If Telegram bot is used you will also recive this warning. See :ref:`section <telegram>` for more details.
+
+.. _analog-search:
+
 Analog search
 *************
 
+The Analog method is a classic statistical search method based in a KNN search with a defined metric 
+(See `Zorita <https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml>`_
+for a more detailed definition).
+
+
+
+.. _va-am-methods:
+
 VA-AM methods
 *************
+
+.. _telegram:
 
 Telegram bot
 ------------
