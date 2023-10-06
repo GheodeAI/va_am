@@ -261,12 +261,41 @@ The Analog method is a classic statistical search method based in a KNN search w
 (See `Zorita <https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml>`_
 for a more detailed definition).
 
+Until now, analog search is an auxiliar method that is not available from the outside python code versión.
+It is expected that in next version of :doc:`VA-AM <index>`, the preprocess stage will be a more
+generic one. With this, an only analog search method option will be allowed for outside python code
+execution. For now, you can use it by:
 
+.. code-block:: python
+
+    from va_am import analogSearch
+    analogSearch(...)
+
+See `API reference <https://va-am.readthedocs.io/en/latest/va_am.html#va_am.va_am.analogSearch>`_ for details about ``analogSearch`` arguments
 
 .. _va-am-methods:
 
 VA-AM methods
 *************
+
+The usual functionality of :doc:`VA-AM <index>` is to use `deep learning` methods (mainly Autoencoder-based)
+to enhance the performance of the classic :ref:`analog <analog-search>`. We provide several already-done
+architectures, such as `Variational-Autoencoder <https://va-am.readthedocs.io/en/latest/va_am.utils.html#va_
+am.utils.AutoEncoders.AE_conv.kl_heatwave_arch_build>`_ , `Autoencoder <https://va-am.readthedocs.io/en/late
+st/va_am.utils.html#va_am.utils.AutoEncoders.AE_conv.def_arch_build>`_, `Deep-Autoencoder <https://va-am.rea
+dthedocs.io/en/latest/va_am.utils.html#va_am.utils.AutoEncoders.AE_conv.dense_build>`_, `Simetric-Autoencode
+r <https://va-am.readthedocs.io/en/latest/va_am.utils.html#va_am.utils.AutoEncoders.AE_conv.batched_simetric
+_build>`_, among others (see `API reference <https://va-am.readthedocs.io/en/latest/va_am.utils.html#va_am.u
+tils.AutoEncoders.AE_conv>`_).
+
+.. note::
+
+    Where the order of architecture in the documentation correspond to its ``arch`` value in :ref:`Configuration file  <config>`.
+
+For heat wave case a `specific architecture <https://va-am.readthedocs.io/en/latest/va_am.utils.html#va_am.u
+tils.AutoEncoders.AE_conv.heatwave_arch_build>`_ is recommended (``arch=5``)
+
+Is expected to implement in future versions a user-framework or method to use user-own architecture in :doc:`VA-AM <index>`.
 
 .. _telegram:
 
