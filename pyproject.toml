@@ -10,9 +10,16 @@ description = "VA-AM method implementation"
 readme = "README.md"
 dependencies = ["requests","sympy","keras","tensorflow","xarray","netcdf4","matplotlib","pandas","numpy"]
 requires-python = ">=3.7"
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
 
 [project.scripts]
 my-script = "scripts.main:mn"
 
 [project.urls]
 "Homepage" = "https://github.com/cosminmarina/va-am"
+"Documentation" = "https://va-am.readthedocs.io/"
