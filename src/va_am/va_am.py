@@ -438,15 +438,20 @@ def runComparison(params: dict)-> tuple:
     # Default values
     if not "temp_dataset" in params:
         params["temp_dataset"] = 'data/air.sig995.day.nc'
-    if not "temp_var_name" in params:
-        params["temp_var_name"] = 'air'
     if not "prs_dataset" in params:
         params["prs_dataset"] = 'data/prmsl.day.mean.nc'
+
     # Load data
     temp=xr.load_dataset(params["temp_dataset"], engine='netcdf4')   #Temperatures 
     prs=xr.load_dataset(params["prs_dataset"], engine='netcdf4')    #Atmospheric Pressure
     if params["verbose"]:
         print('Data loaded')
+
+    # Attribute names
+    if not "temp_var_name" in params:
+        params["temp_var_name"] = list(temp.data_vars)[0]
+    if not "prs_var_name" in params:
+        params["prs_var_name"] = list(prs.data_vars)[0]
         
     print(np.shape(temp[params["temp_var_name"]].data))
 
@@ -576,23 +581,23 @@ def runComparison(params: dict)-> tuple:
     
     ## Normalization
     if params["period"] == 'both':
-        min_scale_prs = np.min(np.array([x_train_ind_prs.prmsl.min(), x_test_ind_prs.prmsl.min(), x_train_pre_prs.prmsl.min(), x_test_pre_prs.prmsl.min()]))
-        norm_scale_prs = np.max(np.array([x_train_ind_prs.prmsl.max(), x_test_ind_prs.prmsl.max(), x_train_pre_prs.prmsl.max(), x_test_pre_prs.prmsl.max()])) - min_scale_prs
+        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min(), x_test_ind_prs[params["prs_var_name"]].min(), x_train_pre_prs[params["prs_var_name"]].min(), x_test_pre_prs[params["prs_var_name"]].min()]))
+        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max(), x_test_ind_prs[params["prs_var_name"]].max(), x_train_pre_prs[params["prs_var_name"]].max(), x_test_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
     elif params["period"] == 'post':
-        min_scale_prs = np.min(np.array([x_train_ind_prs.prmsl.min(), x_test_ind_prs.prmsl.min()]))
-        norm_scale_prs = np.max(np.array([x_train_ind_prs.prmsl.max(), x_test_ind_prs.prmsl.max()])) - min_scale_prs
+        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min(), x_test_ind_prs[params["prs_var_name"]].min()]))
+        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max(), x_test_ind_prs[params["prs_var_name"]].max()])) - min_scale_prs
     else:
-        min_scale_prs = np.min(np.array([x_train_pre_prs.prmsl.min(), x_test_pre_prs.prmsl.min()]))
-        norm_scale_prs = np.max(np.array([x_train_pre_prs.prmsl.max(), x_test_pre_prs.prmsl.max()])) - min_scale_prs
+        min_scale_prs = np.min(np.array([x_train_pre_prs[params["prs_var_name"]].min(), x_test_pre_prs[params["prs_var_name"]].min()]))
+        norm_scale_prs = np.max(np.array([x_train_pre_prs[params["prs_var_name"]].max(), x_test_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
     if params["period"] in ['both', 'pre']:
-        x_train_pre_norm_prs = (x_train_pre_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs
-        x_test_pre_norm_prs = (x_test_pre_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs
-        pre_indust_norm_prs = (pre_indust_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs    
+        x_train_pre_norm_prs = (x_train_pre_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
+        x_test_pre_norm_prs = (x_test_pre_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
+        pre_indust_norm_prs = (pre_indust_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs    
     
-    x_train_ind_norm_prs = (x_train_ind_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs
-    x_test_ind_norm_prs = (x_test_ind_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs
-    data_of_interest_norm_prs = (data_of_interest_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs
-    indust_norm_prs = (indust_prs.prmsl.astype('float32') - min_scale_prs) / norm_scale_prs
+    x_train_ind_norm_prs = (x_train_ind_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
+    x_test_ind_norm_prs = (x_test_ind_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
+    data_of_interest_norm_prs = (data_of_interest_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
+    indust_norm_prs = (indust_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
 
     if params["verbose"]:
         print('Normalization')

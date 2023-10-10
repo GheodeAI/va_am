@@ -168,7 +168,14 @@ ident_dataset         str                  Path to dataset where the identificat
                                            will be performed. It could be the same 
                                            (or not) as the target dataset.
 temp_var_name         str                  Name of target variable in the dataset
-                                           (default value ``air``).
+                                           (default value if not specified is
+                                           inferred from the dataset).
+prs_var_name          str                  Name of predictor/driver variable in the 
+                                           dataset. In case you don't specify it,
+                                           the name will be inferred automatically.
+                                           In future multi-variate VA-AM version,
+                                           this parameter will change, probably to a
+                                           list of strings or something like this.
 p                     int                  Wich p-Minkowski distance to perform while
                                            the analog search, where taxicab
                                            distance is ``p=1``, euclidean distance is
