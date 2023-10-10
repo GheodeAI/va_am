@@ -1,5 +1,5 @@
 {
-    "season":                   ["all","spring-summer"],
+    "season":                   "all",
     "name":                     "-HWMId-per_day-france2003-",
     "latitude_min":             32,
     "latitude_max":             70,
@@ -28,5 +28,6 @@
     "remove_year":              false,
     "replace_choice":           true,
     "arch":                     5,
-    "verbose":                  false
+    "verbose":                  false,
+    "prs_dataset": 		"~/Documentos/Cosmin/va_am/data/hgt_1851-2014.nc",
 }

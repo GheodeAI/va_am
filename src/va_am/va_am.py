@@ -946,6 +946,10 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
     period = 'both'
     if args.period is not None:
         period = args.period
+    reconstructions_Pre_Analog = []
+    reconstructions_Post_Analog = []
+    reconstructions_Pre_AE = []
+    reconstructions_Post_AE = []
     # Execution of method
     if args.method == 'day' or args.method is None:
         if ident:
@@ -1021,10 +1025,6 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             params["save_recons"] = save_recons
         # Methods with configfile
         if args.method == 'days':
-            reconstructions_Pre_Analog = []
-            reconstructions_Post_Analog = []
-            reconstructions_Pre_AE = []
-            reconstructions_Post_AE = []
             for idx, init in enumerate(params_multiple["data_of_interest_init"]):
                 if idx == 0:
                     params["load_AE"] = False
@@ -1202,6 +1202,10 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
       Returns
       ----------
     """
+    reconstructions_Pre_Analog = []
+    reconstructions_Post_Analog = []
+    reconstructions_Pre_AE = []
+    reconstructions_Post_AE = []
     # Execution of method
     if method == 'day':
         if ident:
@@ -1271,10 +1275,6 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             params["save_recons"] = save_recons
         # Methods with configfile
         if method == 'days':
-            reconstructions_Pre_Analog = []
-            reconstructions_Post_Analog = []
-            reconstructions_Pre_AE = []
-            reconstructions_Post_AE = []
             for idx, init in enumerate(params_multiple["data_of_interest_init"]):
                 if idx == 0:
                     params["load_AE"] = False
