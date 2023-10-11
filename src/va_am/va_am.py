@@ -271,8 +271,6 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
     else:
         selected_psr = prsf[idx,:]
 
-    print(f'\n selected_psr: {selected_psr} \n selected_temp: {selected_temp} \n')
-
     return selected_psr, selected_temp
 
 def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude_min: int, latitude_max: int, longitude_min: int, longitude_max: int, resolution: Union[int, float] = 2, is_teleg: bool = False) -> list:
