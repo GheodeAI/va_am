@@ -304,7 +304,7 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
     token = None
     chat_id = None
     if is_teleg:
-        with open('./secret.txt') as f:
+        with open(params["secret_file"]) as f:
             token = f.readline().strip()
             chat_id = f.readline().strip()
             user_name = f.readline().strip()
@@ -418,7 +418,7 @@ def runComparison(params: dict)-> tuple:
     if "teleg" in params:
         if params["teleg"]:
             is_teleg = True
-            with open('./secret.txt') as f:
+            with open(params["secret_file"]) as f:
                 token = f.readline().strip()
                 chat_id = f.readline().strip()
                 user_name = f.readline().strip()
@@ -977,6 +977,8 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params["enhanced_distance"] = False
             if "save_recons" not in params.keys():
                 params["save_recons"] = save_recons
+            if "secret_file" not in params.keys():
+                params["secret_file"] = args.secret
             identify_heatwave_days(params)
             message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
             if teleg:
@@ -1021,6 +1023,8 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             params["enhanced_distance"] = False
         if "save_recons" not in params.keys():
             params["save_recons"] = save_recons
+        if "secret_file" not in params.keys():
+            params["secret_file"] = args.secret
         # Methods with configfile
         if args.method == 'days':
             for idx, init in enumerate(params_multiple["data_of_interest_init"]):
@@ -1230,6 +1234,8 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params["enhanced_distance"] = False
             if "save_recons" not in params.keys():
                 params["save_recons"] = save_recons
+            if "secret_file" not in params.keys():
+                params["secret_file"] = args.secret
             identify_heatwave_days(params)
             message = f"Indentify Heat wave period (flag -i   --identifyhw) for {params['name'][1:-1]} is not compatible with default 'method' ('day') and this will not be executed"
             if teleg:
@@ -1271,6 +1277,8 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             params["enhanced_distance"] = False
         if "save_recons" not in params.keys():
             params["save_recons"] = save_recons
+        if "secret_file" not in params.keys():
+            params["secret_file"] = args.secret
         # Methods with configfile
         if method == 'days':
             for idx, init in enumerate(params_multiple["data_of_interest_init"]):
@@ -1575,6 +1583,8 @@ def main():
         save_recons = args.save_recons
     if args.secret is not None:
         secret_file = args.secret
+    else:
+        args.secret = secret_file
     token = None
     chat_id = None
     user_name = None
