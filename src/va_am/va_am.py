@@ -1010,7 +1010,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
-                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"]), datetime.datetime.strptime(params_multiple["data_of_interest_end"]), datetime.timedelta(days=1))
+                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             params = params_multiple.copy()
@@ -1264,7 +1264,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
-                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"]), datetime.datetime.strptime(params_multiple["data_of_interest_end"]), datetime.timedelta(days=1))
+                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             params = params_multiple.copy()
