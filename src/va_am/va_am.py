@@ -273,7 +273,7 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
 
     return selected_psr, selected_temp
 
-def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude_min: int, latitude_max: int, longitude_min: int, longitude_max: int, resolution: Union[int, float] = 2, is_teleg: bool = False) -> list:
+def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude_min: int, latitude_max: int, longitude_min: int, longitude_max: int, resolution: Union[int, float] = 2, is_teleg: bool = False, secret_file:str = './secret.txt') -> list:
     """
       calculate_interest_region
        
@@ -295,6 +295,8 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
           Degrees resolution employed. Default value is 2º.
       is_teleg: bool
           Flag that indicate if the warnings have to be sent to Telegram or not.
+      secret_file: str
+          Auxiliar variable only needed if is_teleg True to read token and chat_id values.
         
       Returns
       ----------
@@ -304,7 +306,7 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
     token = None
     chat_id = None
     if is_teleg:
-        with open(params["secret_file"]) as f:
+        with open(secret_file) as f:
             token = f.readline().strip()
             chat_id = f.readline().strip()
             user_name = f.readline().strip()
@@ -698,7 +700,7 @@ def runComparison(params: dict)-> tuple:
     current = datetime.datetime.now()
     int_reg = params["interest_region"]
     if params["interest_region_type"] == "coord":
-        int_reg = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], is_teleg)
+        int_reg = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], is_teleg, params["secret_file"])
 
     ## This is the threshold of difference between driver/predictor maps and target
     ## to be acepted as low difference
@@ -850,7 +852,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     ## Extract interest data
     idx_interest = params["interest_region"]
     if params["interest_region_type"] == "coord":
-        idx_interest = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], params["teleg"])
+        idx_interest = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], params["teleg"], params["secret_file"])
     data_temp = data_temp.isel(latitude=slice(idx_interest[0], idx_interest[1]),longitude=slice(idx_interest[2], idx_interest[3]))
     data_temp = data_temp.mean(dim=['latitude', 'longitude'])
     
