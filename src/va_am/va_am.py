@@ -456,7 +456,7 @@ def runComparison(params: dict)-> tuple:
     if not "temp_var_name" in params:
         params["temp_var_name"] = list(temp.data_vars)[0]
     if not "prs_var_name" in params:
-        params["prs_var_name"] = list(prs.data_vars)[0]
+        params["prs_var_name"] = list(prs.data_vars)
         
     print(np.shape(temp[params["temp_var_name"]].data))
 
@@ -585,47 +585,77 @@ def runComparison(params: dict)-> tuple:
         print('Train/Test split')
     
     ## Normalization
-    if params["period"] == 'both':
-        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min(), x_train_pre_prs[params["prs_var_name"]].min()]))
-        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max(), x_train_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
-    elif params["period"] == 'post':
-        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min()]))
-        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max()])) - min_scale_prs
-    else:
-        min_scale_prs = np.min(np.array([x_train_pre_prs[params["prs_var_name"]].min()]))
-        norm_scale_prs = np.max(np.array([x_train_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
-    if params["period"] in ['both', 'pre']:
-        x_train_pre_norm_prs = (x_train_pre_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
-        x_test_pre_norm_prs = (x_test_pre_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
-        pre_indust_norm_prs = (pre_indust_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs    
-    
-    x_train_ind_norm_prs = (x_train_ind_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
-    x_test_ind_norm_prs = (x_test_ind_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
-    data_of_interest_norm_prs = (data_of_interest_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
-    indust_norm_prs = (indust_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
+    x_train_pre_norm_prs = x_train_pre_prs.copy()
+    x_test_pre_norm_prs = x_test_pre_prs.copy()
+    pre_indust_norm_prs = pre_indust_prs.copy()
+    x_train_ind_norm_prs = x_train_ind_prs.copy()
+    x_test_ind_norm_prs = x_test_ind_prs.copy()
+    data_of_interest_norm_prs = data_of_interest_prs.copy()
+    indust_norm_prs = indust_prs.copy()
+    for prs_var in params["prs_var_name"]:
+
+        if params["period"] == 'both':
+            min_scale_prs = np.min(np.array([x_train_ind_prs[prs_var].min(), x_train_pre_prs[prs_var].min()]))
+            norm_scale_prs = np.max(np.array([x_train_ind_prs[prs_var].max(), x_train_pre_prs[prs_var].max()])) - min_scale_prs
+        elif params["period"] == 'post':
+            min_scale_prs = np.min(np.array([x_train_ind_prs[prs_var].min()]))
+            norm_scale_prs = np.max(np.array([x_train_ind_prs[prs_var].max()])) - min_scale_prs
+        else:
+            min_scale_prs = np.min(np.array([x_train_pre_prs[prs_var].min()]))
+            norm_scale_prs = np.max(np.array([x_train_pre_prs[prs_var].max()])) - min_scale_prs
+
+        if params["period"] in ['both', 'pre']:
+            data[vars_names[0]].data = (data[vars_names[0]].data - min_val) / norm_scale
+            x_train_pre_norm_prs[prs_var].data = (x_train_pre_prs[prs_var].data - min_scale_prs) / norm_scale_prs
+            x_test_pre_norm_prs[prs_var].data = (x_test_pre_prs[prs_var].data - min_scale_prs) / norm_scale_prs
+            pre_indust_norm_prs[prs_var].data = (pre_indust_prs[prs_var].data - min_scale_prs) / norm_scale_prs    
+        
+        x_train_ind_norm_prs[prs_var].data = (x_train_ind_prs[prs_var].data - min_scale_prs) / norm_scale_prs
+        x_test_ind_norm_prs[prs_var].data = (x_test_ind_prs[prs_var].data - min_scale_prs) / norm_scale_prs
+        data_of_interest_norm_prs[prs_var].data = (data_of_interest_prs[prs_var].data - min_scale_prs) / norm_scale_prs
+        indust_norm_prs[prs_var].data = (indust_prs[prs_var].data - min_scale_prs) / norm_scale_prs
 
     if params["verbose"]:
         print('Normalization')
 
     ## Reshape
+    if params["period"] in ['both', 'pre']:
+        x_train_pre_prs = x_train_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+        x_test_pre_prs = x_test_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+        pre_indust_prs = pre_indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+    x_train_ind_prs = x_train_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+    x_test_ind_prs = x_test_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+    data_of_interest_prs = data_of_interest_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+    indust_prs = indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+
     if params["arch"]==8:
         if params["period"] in ['both', 'pre']:
-            x_train_pre_prs = np.reshape(np.array(x_train_pre_norm_prs), (len(x_train_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-            x_test_pre_prs = np.reshape(np.array(x_test_pre_norm_prs), (len(x_test_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-            pre_indust_prs = np.reshape(np.array(pre_indust_norm_prs), (len(pre_indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-        x_train_ind_prs = np.reshape(np.array(x_train_ind_norm_prs), (len(x_train_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-        x_test_ind_prs = np.reshape(np.array(x_test_ind_norm_prs), (len(x_test_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-        data_of_interest_prs = np.reshape(np.array(data_of_interest_norm_prs), (len(data_of_interest_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-        indust_prs = np.reshape(np.array(indust_norm_prs), (len(indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    else:
-        if params["period"] in ['both', 'pre']:
-            x_train_pre_prs = np.reshape([x_train_pre_norm_prs], (len(x_train_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-            x_test_pre_prs = np.reshape([x_test_pre_norm_prs], (len(x_test_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-            pre_indust_prs = np.reshape([pre_indust_norm_prs], (len(pre_indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-        x_train_ind_prs = np.reshape([x_train_ind_norm_prs], (len(x_train_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-        x_test_ind_prs = np.reshape([x_test_ind_norm_prs], (len(x_test_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-        data_of_interest_prs = np.reshape([data_of_interest_norm_prs], (len(data_of_interest_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-        indust_prs = np.reshape([indust_norm_prs], (len(indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+            x_train_pre_prs = x_train_pre_prs.mean(dim="variable")
+            x_test_pre_prs = x_test_pre_prs.mean(dim="variable")
+            pre_indust_prs = pre_indust_prs.mean(dim="variable")
+        x_train_ind_prs = x_train_ind_prs.mean(dim="variable")
+        x_test_ind_prs = x_test_ind_prs.mean(dim="variable")
+        data_of_interest_prs = data_of_interest_prs.mean(dim="variable")
+        indust_prs = indust_prs.mean(dim="variable")
+
+    # if params["arch"]==8:
+    #     if params["period"] in ['both', 'pre']:
+    #         x_train_pre_prs = np.reshape(np.array(x_train_pre_norm_prs), (len(x_train_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    #         x_test_pre_prs = np.reshape(np.array(x_test_pre_norm_prs), (len(x_test_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    #         pre_indust_prs = np.reshape(np.array(pre_indust_norm_prs), (len(pre_indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    #     x_train_ind_prs = np.reshape(np.array(x_train_ind_norm_prs), (len(x_train_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    #     x_test_ind_prs = np.reshape(np.array(x_test_ind_norm_prs), (len(x_test_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    #     data_of_interest_prs = np.reshape(np.array(data_of_interest_norm_prs), (len(data_of_interest_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    #     indust_prs = np.reshape(np.array(indust_norm_prs), (len(indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
+    # else:
+    #     if params["period"] in ['both', 'pre']:
+    #         x_train_pre_prs = np.reshape([x_train_pre_norm_prs.data], (len(x_train_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    #         x_test_pre_prs = np.reshape([x_test_pre_norm_prs.data], (len(x_test_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    #         pre_indust_prs = np.reshape([pre_indust_norm_prs.data], (len(pre_indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    #     x_train_ind_prs = np.reshape([x_train_ind_norm_prs.data], (len(x_train_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    #     x_test_ind_prs = np.reshape([x_test_ind_norm_prs.data], (len(x_test_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    #     data_of_interest_prs = np.reshape([data_of_interest_norm_prs.data], (len(data_of_interest_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    #     indust_prs = np.reshape([indust_norm_prs.data], (len(indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
 
     if params["verbose"]:
         print('Reshape')
