@@ -4,6 +4,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '3'
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 plt.rcParams.update({
     "text.usetex": True,
@@ -110,6 +112,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
 
     Path(file_save.split("/")[-2]).mkdir(parents=True, exist_ok=True)
     AE.encoder.save(file_save)
+    AE.decoder.save(file_save[:-3]+"_dec_"+file_save[-3:])
     return AE.encoder
 
 def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pre_indust_prs: Union[list, np.ndarray] = None, indust_prs: Union[list, np.ndarray] = None, data_of_interest_prs: Union[list, np.ndarray] = None, period : str = 'both') -> Union[np.ndarray, list]:
@@ -380,22 +383,24 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
             #                                       ))
             # xr_Post_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
         if params["period"] in ["both", "post"]:
-            # reconstruction_Pre_AE = np.mean(reconstructions_Pre_AE, axis=0)
-            # print('Size Recons Pre AE: ', np.size(reconstruction_Pre_AE))
+            Path("./data").mkdir(parents=True, exist_ok=True)
             reconstruction_Post_AE = np.mean(reconstructions_Post_AE, axis=0)
             print('Size Recons Post AE: ', np.size(reconstruction_Post_AE))
-            # xr_Pre_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Pre_AE)),
-            #                        coords=dict(reconstruction = np.arange(params["iter"]),
-            #                                    latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
-            #                                    longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
-            #                                   ))
-            # xr_Pre_AE.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
             xr_Post_AE = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_AE)),
                                     coords=dict(reconstruction = np.arange(params["iter"]),
                                                 latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
                                                 longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
                                             ))
-            xr_Post_AE.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-VA-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+            xr_Post_AE.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AE-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+            
+            reconstruction_Post_Analog = np.mean(reconstructions_Post_Analog, axis=0)
+            xr_Post_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_Analog)),
+                                        coords=dict(reconstruction = np.arange(params["iter"]),
+                                                    latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
+                                                    longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
+                                                   ))
+            xr_Post_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
+            
 
 def runComparison(params: dict)-> tuple:
     """
@@ -581,14 +586,14 @@ def runComparison(params: dict)-> tuple:
     
     ## Normalization
     if params["period"] == 'both':
-        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min(), x_test_ind_prs[params["prs_var_name"]].min(), x_train_pre_prs[params["prs_var_name"]].min(), x_test_pre_prs[params["prs_var_name"]].min()]))
-        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max(), x_test_ind_prs[params["prs_var_name"]].max(), x_train_pre_prs[params["prs_var_name"]].max(), x_test_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
+        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min(), x_train_pre_prs[params["prs_var_name"]].min()]))
+        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max(), x_train_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
     elif params["period"] == 'post':
-        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min(), x_test_ind_prs[params["prs_var_name"]].min()]))
-        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max(), x_test_ind_prs[params["prs_var_name"]].max()])) - min_scale_prs
+        min_scale_prs = np.min(np.array([x_train_ind_prs[params["prs_var_name"]].min()]))
+        norm_scale_prs = np.max(np.array([x_train_ind_prs[params["prs_var_name"]].max()])) - min_scale_prs
     else:
-        min_scale_prs = np.min(np.array([x_train_pre_prs[params["prs_var_name"]].min(), x_test_pre_prs[params["prs_var_name"]].min()]))
-        norm_scale_prs = np.max(np.array([x_train_pre_prs[params["prs_var_name"]].max(), x_test_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
+        min_scale_prs = np.min(np.array([x_train_pre_prs[params["prs_var_name"]].min()]))
+        norm_scale_prs = np.max(np.array([x_train_pre_prs[params["prs_var_name"]].max()])) - min_scale_prs
     if params["period"] in ['both', 'pre']:
         x_train_pre_norm_prs = (x_train_pre_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
         x_test_pre_norm_prs = (x_test_pre_prs[params["prs_var_name"]].astype('float32') - min_scale_prs) / norm_scale_prs
@@ -643,7 +648,10 @@ def runComparison(params: dict)-> tuple:
     elif params["load_AE_pre"]:
         if params["verbose"]:
             print('Start fitting post')
-        input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
+        if "kl_factor" in params.keys():
+            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude'),params["kl_factor"]]
+        else:
+            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
             AE_pre = keras.models.load_model(params["file_AE_pre"], custom_objects={'keras': keras,'AutoEncoders': AutoEncoders})
         if params["period"] in ['both', 'post']:
@@ -653,7 +661,10 @@ def runComparison(params: dict)-> tuple:
     else:
         if params["verbose"]:
             print('Start fitting')
-        input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
+        if "kl_factor" in params.keys():
+            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude'),params["kl_factor"]]
+        else:
+            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
             AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], pre_indust_prs, params["file_AE_pre"], params["verbose"])
         if params["period"] in ['both', 'post']:
@@ -879,7 +890,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         #plt.show()
         print(f'Threshold: {percentile_threshold_array - 273.15}')
         print(f'Amount of days that surpass the threshold: {amount_surpass_threshold}' )
-    #plt.close()
+    plt.close()
 
     if amount_surpass_threshold == len(data_temp_array):
         heatwave_period = time_x#.astype('datetime64[D]')
@@ -892,8 +903,9 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         cumsum = np.cumsum(grouped_surpass, axis=0)
         heatwave_period = time_x[(0 if idx == 0 else cumsum[idx-1][1]):cumsum[min(np.shape(cumsum)[0],idx)][1]]#.astype('datetime64[D]')
     Path("./figures").mkdir(parents=True, exist_ok=True)
-    plt.title(f'Heatwave: {heatwave_period[0].date()} - {heatwave_period[-1].date()}')
-    plt.axvspan(heatwave_period[0], heatwave_period[-1], label='Heatwave period', color='crimson', alpha=0.3)
+    if len(heatwave_period > 0):
+        plt.title(f'Heatwave: {heatwave_period[0].date()} - {heatwave_period[-1].date()}')
+        plt.axvspan(heatwave_period[0], heatwave_period[-1], label='Heatwave period', color='crimson', alpha=0.3)
     plt.ylabel('Temperature (ºC)')
     plt.legend()
     plt.tight_layout()
@@ -1007,6 +1019,8 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             params_multiple = json.load(file_params)
             params_multiple["teleg"] = teleg
             params_multiple["period"] = period
+            if "secret_file" not in params_multiple.keys():
+                params_multiple["secret_file"] = args.secret
             if ident:
                 heatwave_period = identify_heatwave_days(params_multiple)
                 params_multiple["data_of_interest_init"] = heatwave_period
@@ -1025,8 +1039,6 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             params["enhanced_distance"] = False
         if "save_recons" not in params.keys():
             params["save_recons"] = save_recons
-        if "secret_file" not in params.keys():
-            params["secret_file"] = args.secret
         # Methods with configfile
         if args.method == 'days':
             for idx, init in enumerate(params_multiple["data_of_interest_init"]):
@@ -1261,6 +1273,8 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             params_multiple = json.load(file_params)
             params_multiple["teleg"] = teleg
             params_multiple["period"] = period
+            if "secret_file" not in params_multiple.keys():
+                params_multiple["secret_file"] = args.secret
             if ident:
                 heatwave_period = identify_heatwave_days(params_multiple)
                 params_multiple["data_of_interest_init"] = heatwave_period
@@ -1279,8 +1293,6 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             params["enhanced_distance"] = False
         if "save_recons" not in params.keys():
             params["save_recons"] = save_recons
-        if "secret_file" not in params.keys():
-            params["secret_file"] = args.secret
         # Methods with configfile
         if method == 'days':
             for idx, init in enumerate(params_multiple["data_of_interest_init"]):

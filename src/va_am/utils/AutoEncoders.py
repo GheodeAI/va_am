@@ -1,7 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
-from keras import layers
+from keras import layers, regularizers
 import keras.backend as K
+import numpy as np
 
 def sampling(args):
     """
@@ -22,7 +23,8 @@ def sampling(args):
     print(latent_dim)
     epsilon = keras.backend.random_normal(shape=(keras.backend.shape(z_mean)[0], latent_dim),
                                         mean=0., stddev=1.)
-    return z_mean + keras.backend.exp(z_log_var) * epsilon
+    return z_mean + keras.backend.exp(0.5 * z_log_var) * epsilon
+    #return z_mean + keras.backend.exp(z_log_var) * epsilon
 
 def masking(args):
     """
@@ -40,6 +42,25 @@ def masking(args):
     input, mask = args
 
     return tf.where(mask, input, 0)
+
+def masking2(args):
+    """
+    Auxiliar function to apply a spacial conditional mask to a layer
+    
+    Parameters
+    ----------
+    args: list of keras.layer
+        A list wich contains the layer to be masked and the mask to be used.
+    Returns
+    ----------
+    : keras.layer
+        The input layer masked by mask.
+    """
+    input, mask_shape = args
+
+    mask = (tf.random.normal(shape=mask_shape) < 0.6)
+
+    return  tf.where(condition=mask, x=input, y=0)
 
 class AE_conv():
     """
@@ -73,9 +94,9 @@ class AE_conv():
         self.autoencoder = None
         self.VAE = VAE
         self.arch = arch
-        if mask is None:
+        if mask is None and arch==6:
             self.mask = tf.ones(tf.concat([self.input_dim, [self.in_channels]], 0), dtype=bool)
-        else:
+        if mask is not None:
             self.mask = tf.convert_to_tensor(mask, dtype=bool)
         if self.arch==1:
             # default architecture
@@ -101,6 +122,22 @@ class AE_conv():
         elif self.arch==8:
             # dense architecture
             self.dense_build()
+        elif self.arch==9:
+            self.ae_arch_build()
+        elif self.arch==10:
+            self.ae_relu_arch_build()
+        elif self.arch==11:
+            self.mask_ae_relu_arch_build()
+        elif self.arch==12:
+            self.very_simple_arch_build()
+        elif self.arch==13:
+            self.sparse_arch_build()
+        elif self.arch==14:
+            self.keras_vae_build()
+        elif self.arch==15:
+            self.vae_relu_arch_build()
+        elif self.arch==16:
+            self.ae_relu_arch_build2()
 
     # Default architecture of anti-simetric AutoEncoder
     def def_arch_build(self):
@@ -291,6 +328,9 @@ class AE_conv():
         ----------
         """
         # Input
+        kl_factor = 0.02
+        if len(self.input_dim)==3:
+            kl_factor = self.input_dim[2]
         input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
 
@@ -359,7 +399,7 @@ class AE_conv():
         kl_loss = -0.5*(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
         kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=-1))
 
-        vae_loss = reconstruction_loss + 0.05*kl_loss
+        vae_loss = reconstruction_loss + kl_factor*kl_loss
         self.autoencoder.add_loss(vae_loss)
 
     # Special architecture for the Heatwave
@@ -611,7 +651,540 @@ class AE_conv():
         self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
         print(self.autoencoder.summary())
 
+    def ae_arch_build(self):
+        """
+        Example of Autoencoder architecture for HW. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        # kl_factor = 1
+        # if len(self.input_dim)==3:
+        #     kl_factor = self.input_dim[2]
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
 
+
+        # Encoder
+        x = layers.Conv2D(32, 3, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=1)(input_img)
+        x = layers.Conv2D(32, 3, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=(2,3))(x)
+
+        x = layers.Conv2D(16, 3, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.LeakyReLU(alpha=0.3))(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(self.latent_dim, activation=layers.LeakyReLU(alpha=0.3))(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.LeakyReLU(alpha=0.3))(x)
+            x = layers.Dense(self.latent_dim, activation=layers.LeakyReLU(alpha=0.3))(encoded)
+        
+        # Decoder
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.LeakyReLU(alpha=0.3))(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 16))(x)
+
+        x = layers.Conv2DTranspose(16, 4, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(32, 4, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.LeakyReLU(alpha=0.3), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+        # # KL loss
+        # reconstruction_loss = tf.reduce_mean(tf.reduce_sum(keras.losses.mse(input_img, outputs), axis=(1, 2)))
+
+        # kl_loss = -0.5*(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+        # kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=-1))
+
+        # vae_loss = reconstruction_loss + kl_factor*kl_loss
+        # self.autoencoder.add_loss(vae_loss)
+
+    def ae_relu_arch_build(self):
+        """
+        Example of AE architecture for HW with relu activation function. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+
+        # Encoder
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(input_img)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(encoded)
+        
+        # Decoder
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 16))(x)
+
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+
+    def mask_ae_relu_arch_build(self):
+        """
+        Example of AE architecture for HW with relu and spatial mask. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+        # Mask
+        x = layers.Lambda(masking2, output_shape=(self.input_dim[0], self.input_dim[1], self.in_channels))([input_img, (self.input_dim[0], self.input_dim[1], self.in_channels)])
+
+        # Encoder
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(encoded)
+        
+        # Decoder  
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 16))(x)
+
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+
+    def very_simple_arch_build(self):
+        """
+        Simplified architecture of AE with relu. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+        # Encoder
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(input_img)
+        x = layers.Conv2D(8, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(8 * dim_row * dim_col), activation=layers.ReLU())(encoded)
+        
+        # Decoder  
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 8))(x)
+
+        x = layers.Conv2DTranspose(8, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+    def sparse_arch_build(self):
+        """
+        Example of Sparse Autoencoder architecture. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+
+        # Encoder
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(input_img)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(16 * dim_row * dim_col), activity_regularizer=regularizers.l1(10e-5), activation=layers.ReLU())(encoded)
+        
+        # Decoder
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 16))(x)
+
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+    def keras_vae_build(self):
+        """
+        Keras example architecture. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+
+        # Encoder
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(input_img)
+        x = layers.Conv2D(64, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(16 * dim_row * dim_col), activity_regularizer=regularizers.l1(10e-5), activation=layers.ReLU())(encoded)
+        
+        # Decoder
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 16))(x)
+
+        x = layers.Conv2DTranspose(64, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2DTranspose(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+        # KL loss
+        reconstruction_loss = tf.reduce_mean(tf.reduce_sum(keras.losses.mse(input_img, outputs), axis=(1, 2)))
+
+        kl_loss = -0.5*(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+        kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=-1))
+
+        vae_loss = reconstruction_loss + kl_loss
+        self.autoencoder.add_loss(vae_loss)
+        
+    def vae_relu_arch_build(self):
+        """
+        VAE architecture with relu activation function. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+
+        # Encoder
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(input_img)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(int(32 * dim_row * dim_col), activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(32 * dim_row * dim_col), activation=layers.ReLU())(encoded)
+        
+        # Decoder
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 32))(x)
+
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+        # KL loss
+        reconstruction_loss = tf.reduce_mean(tf.reduce_sum(keras.losses.mse(input_img, outputs), axis=(1, 2)))
+
+        kl_loss = -0.5*(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+        kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=-1))
+
+        vae_loss = reconstruction_loss + kl_loss
+        self.autoencoder.add_loss(vae_loss)
+        
+    def ae_relu_arch_build2(self):
+        """
+        Example of AE architecture with relu and BatchNormalization. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+
+        # Encoder
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(input_img)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(16 * dim_row * dim_col), activation=layers.ReLU())(encoded)
+        
+        # Decoder
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 16))(x)
+
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        x = layers.BatchNormalization()(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+        
     def compile(self, optimizer='adam', loss='mse', metrics=['mae', 'mape']):
         """
         Compilation of the AutoEncoder.
@@ -631,7 +1204,7 @@ class AE_conv():
         ----------
         No output, only compile the model.
         """
-        if self.arch == 4:
+        if self.arch in [4, 14, 15]:
             self.autoencoder.compile(optimizer=optimizer, metrics=metrics)
         else:
             self.autoencoder.compile(optimizer=optimizer, loss=loss, metrics=metrics)
