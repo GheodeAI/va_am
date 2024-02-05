@@ -620,23 +620,23 @@ def runComparison(params: dict)-> tuple:
 
     ## Reshape
     if params["period"] in ['both', 'pre']:
-        x_train_pre_prs = x_train_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
-        x_test_pre_prs = x_test_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
-        pre_indust_prs = pre_indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
-    x_train_ind_prs = x_train_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
-    x_test_ind_prs = x_test_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
-    data_of_interest_prs = data_of_interest_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
-    indust_prs = indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable")
+        x_train_pre_prs = x_train_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+        x_test_pre_prs = x_test_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+        pre_indust_prs = pre_indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    x_train_ind_prs = x_train_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    x_test_ind_prs = x_test_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    data_of_interest_prs = data_of_interest_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    indust_prs = indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
 
     if params["arch"]==8:
         if params["period"] in ['both', 'pre']:
-            x_train_pre_prs = x_train_pre_prs.mean(dim="variable")
-            x_test_pre_prs = x_test_pre_prs.mean(dim="variable")
-            pre_indust_prs = pre_indust_prs.mean(dim="variable")
-        x_train_ind_prs = x_train_ind_prs.mean(dim="variable")
-        x_test_ind_prs = x_test_ind_prs.mean(dim="variable")
-        data_of_interest_prs = data_of_interest_prs.mean(dim="variable")
-        indust_prs = indust_prs.mean(dim="variable")
+            x_train_pre_prs = np.mean(x_train_pre_prs, axis=3)
+            x_test_pre_prs = np.mean(x_test_pre_prs, axis=3)
+            pre_indust_prs = np.mean(pre_indust_prs, axis=3)
+        x_train_ind_prs = np.mean(x_train_ind_prs, axis=3)
+        x_test_ind_prs = np.mean(x_test_ind_prs, axis=3)
+        data_of_interest_prs = np.mean(data_of_interest_prs, axis=3)
+        indust_prs = np.mean(indust_prs, axis=3)
 
     # if params["arch"]==8:
     #     if params["period"] in ['both', 'pre']:
