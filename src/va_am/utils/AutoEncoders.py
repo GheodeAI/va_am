@@ -138,6 +138,8 @@ class AE_conv():
             self.vae_relu_arch_build()
         elif self.arch==16:
             self.ae_relu_arch_build2()
+        elif self.arch==17:
+            self.cvae_arch_build()
 
     # Default architecture of anti-simetric AutoEncoder
     def def_arch_build(self):
@@ -1183,6 +1185,102 @@ class AE_conv():
             self.decoder = keras.Model(encoded, decoded)
             self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
         print(self.autoencoder.summary())
+
+    def cvae_arch_build(self):
+        """
+        VAE architecture with relu activation function. Input have to be divisible by (4,6) respectivelly in dimensions (latitude, longitude).
+        
+        Parameters
+        ----------
+        Returns
+        ----------
+        """
+        # Input
+        kl_factor = 0.5
+        focus = 0.6
+        class_factor = 0.5
+        if len(self.input_dim)==5:
+            kl_factor = self.input_dim[2]
+            focus = self.input_dim[3]
+            class_factor = self.input_dim[4]
+        input_img = keras.Input(shape=(self.input_dim[0], self.input_dim[1], self.in_channels))
+
+
+        # Classifier
+        clf_inputs=keras.Input(shape=(self.latent_dim,))
+        c =layers.Dense(32, activation=keras.activations.relu,input_shape=[self.latent_dim])(clf_inputs)
+        c =layers.Dense(1, activation=keras.activations.sigmoid)(c)
+
+        # Encoder
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(input_img)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(16, 3, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=1)(x)
+        x = layers.Conv2D(32, 3, activation=layers.ReLU(), padding='same', strides=2)(x)
+
+        x = layers.Flatten()(x)
+
+        dim_row, dim_col = self.input_dim[0]/4, self.input_dim[1]/6
+
+        # Latent space:
+        if self.VAE:
+            x = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            z_mean = layers.Dense(self.latent_dim)(x)
+            z_log_var = layers.Dense(self.latent_dim)(x)
+            encoded = layers.Lambda(sampling, output_shape=(self.latent_dim,))([z_mean, z_log_var, self.latent_dim])
+
+            latent_inputs = layers.Input(shape=(self.latent_dim,), name='z_sampling')
+            x = layers.Dense(int(32 * dim_row * dim_col), activation=layers.ReLU())(latent_inputs)
+        else:
+            encoded = layers.Dense(self.latent_dim, activation=layers.ReLU())(x)
+            x = layers.Dense(int(32 * dim_row * dim_col), activation=layers.ReLU())(encoded)
+        
+        # Decoder
+
+        #x = layers.Dense(int(dim_row * dim_col), activation=layers.ReLU())(x)
+        x = layers.Reshape((int(dim_row), int(dim_col), 32))(x)
+
+        x = layers.Conv2DTranspose(32, 4, activation=layers.ReLU(), padding='same', strides=2)(x)
+        x = layers.Conv2DTranspose(16, 4, activation=layers.ReLU(), padding='same', strides=(2,3))(x)
+        
+        # Output
+        #x = layers.Conv2DTranspose(3, 4, activation=layers.ReLU(), padding='same', strides=1)(x)
+        decoded = layers.Conv2D(self.out_channels, 3, activation='selu', padding='same', strides=1)(x)
+
+        # Model
+        if self.VAE:
+            self.classifier = keras.Model(clf_inputs, c, name="classifier")
+            self.encoder = keras.Model(input_img, encoded, name='encoder')
+            self.decoder = keras.Model(latent_inputs, decoded)
+            outputs = self.decoder(self.encoder(input_img))#[2])
+            self.autoencoder = keras.Model(input_img, outputs)
+        else:
+            self.classifier = keras.Model(clf_inputs, c, name="classifier")
+            self.encoder = keras.Model(input_img, encoded)
+            self.decoder = keras.Model(encoded, decoded)
+            self.autoencoder = keras.Model(input_img, self.decoder(self.encoder(input_img)))
+        print(self.autoencoder.summary())
+        
+        # Reconstruction loss
+        reconstruction_loss = tf.reduce_mean(tf.reduce_sum(keras.losses.mse(input_img, outputs), axis=(1, 2)))
+
+        # KL loss
+        kl_loss = -0.5*(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
+        kl_loss = tf.reduce_mean(tf.reduce_sum(kl_loss, axis=-1))
+
+        # Classifier loss
+        y_preds = self.classifier(latent_inputs)
+        y_preds=y_preds[:, 0]
+        bce_loss_function= tf.keras.losses.BinaryFocalCrossentropy(gamma=focus, reduction=tf.keras.losses.Reduction.NONE)
+        cross_entropy_loss = tf.reduce_mean(
+                bce_loss_function(labels, y_preds)
+        )
+
+        vae_loss = reconstruction_loss + kl_factor*kl_loss + class_factor*cross_entropy_loss
+        self.autoencoder.add_loss(vae_loss)
+
         
         
     def compile(self, optimizer='adam', loss='mse', metrics=['mae', 'mape']):

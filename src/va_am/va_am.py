@@ -89,13 +89,13 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
     verbose = 1 if verbose else 0
     if with_cpu:
         with tf.device("/cpu:0"):
-            AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,VAE=use_VAE)
+            AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_prs)[-1],out_channels=np.shape(data_prs)[-1],VAE=use_VAE)
 
             AE.compile(optimizer='adam', loss='mse')
 
             history = AE.fit(data_prs, data_prs, epochs=n_epochs, batch_size=128, min_delta=1e-6, patience=50, verbose=verbose)
     else:
-        AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,VAE=use_VAE)
+        AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_prs)[-1],out_channels=np.shape(data_prs)[-1],VAE=use_VAE)
 
         AE.compile(optimizer='adam', loss='mse')
 
@@ -585,9 +585,10 @@ def runComparison(params: dict)-> tuple:
         print('Train/Test split')
     
     ## Normalization
-    x_train_pre_norm_prs = x_train_pre_prs.copy()
-    x_test_pre_norm_prs = x_test_pre_prs.copy()
-    pre_indust_norm_prs = pre_indust_prs.copy()
+    if params["period"] in ['both', 'pre']:
+        x_train_pre_norm_prs = x_train_pre_prs.copy()
+        x_test_pre_norm_prs = x_test_pre_prs.copy()
+        pre_indust_norm_prs = pre_indust_prs.copy()
     x_train_ind_norm_prs = x_train_ind_prs.copy()
     x_test_ind_norm_prs = x_test_ind_prs.copy()
     data_of_interest_norm_prs = data_of_interest_prs.copy()
@@ -680,6 +681,8 @@ def runComparison(params: dict)-> tuple:
             print('Start fitting post')
         if "kl_factor" in params.keys():
             input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude'),params["kl_factor"]]
+        elif "cvae_params" in params.keys():
+            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')] + params["cvae_params"]
         else:
             input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
@@ -693,6 +696,8 @@ def runComparison(params: dict)-> tuple:
             print('Start fitting')
         if "kl_factor" in params.keys():
             input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude'),params["kl_factor"]]
+        elif "cvae_params" in params.keys():
+            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')] + params["cvae_params"]
         else:
             input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
@@ -933,7 +938,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         cumsum = np.cumsum(grouped_surpass, axis=0)
         heatwave_period = time_x[(0 if idx == 0 else cumsum[idx-1][1]):cumsum[min(np.shape(cumsum)[0],idx)][1]]#.astype('datetime64[D]')
     Path("./figures").mkdir(parents=True, exist_ok=True)
-    if len(heatwave_period > 0):
+    if len(heatwave_period) > 0:
         plt.title(f'Heatwave: {heatwave_period[0].date()} - {heatwave_period[-1].date()}')
         plt.axvspan(heatwave_period[0], heatwave_period[-1], label='Heatwave period', color='crimson', alpha=0.3)
     plt.ylabel('Temperature (ºC)')
