@@ -1036,6 +1036,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             warnings.warn(message)
         else:
             runComparison(params)
+        # Everything finished
+        message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+            requests.get(url).json()
+        warnings.warn(message)
     elif args.method in ['days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs', 'latents-seasons-execs']:
         # Read file
         ## Default if configfile is not specified
@@ -1208,6 +1214,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                                 reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                                 reconstructions_Post_AE.append(reconstruction_Post_AE)
                         save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+        # Everything finished
+        message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+            requests.get(url).json()
+        warnings.warn(message)
     else:
         message = ValueError(f"Not recognized {args.method} method. The available methods are 'day' (default), 'days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs' or 'latents-seasons-execs'")
         if teleg:
