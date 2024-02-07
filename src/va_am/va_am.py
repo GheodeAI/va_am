@@ -1096,6 +1096,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                     reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                     reconstructions_Post_AE.append(reconstruction_Post_AE)
             save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+            # Exec finished
+            message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+            if teleg:
+                url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                requests.get(url).json()
+            warnings.warn(message)
         elif args.method == 'seasons':
             for season in params_multiple["season"]:
                 params["season"] = season
@@ -1113,6 +1119,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                         reconstructions_Post_AE.append(reconstruction_Post_AE)
                 save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                # Exec finished
+                message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                    requests.get(url).json()
+                warnings.warn(message)
         elif args.method == 'execs':
             if 'n_execs' in params.keys():
                 n_execs = params['n_execs']
@@ -1132,6 +1144,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                         reconstructions_Post_AE.append(reconstruction_Post_AE)
                 save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                # Exec finished
+                message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                    requests.get(url).json()
+                warnings.warn(message)
         elif args.method == 'latents':
             for latent in params_multiple["latent_dim"]:
                 params["latent_dim"] = latent
@@ -1149,6 +1167,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                         reconstructions_Post_AE.append(reconstruction_Post_AE)
                 save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                # Exec finished
+                message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                    requests.get(url).json()
+                warnings.warn(message)
         elif args.method == 'seasons-execs':
             if 'n_execs' in params.keys():
                 n_execs = params["n_execs"]
@@ -1170,6 +1194,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                             reconstructions_Post_AE.append(reconstruction_Post_AE)
                     save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                    # Exec finished
+                    message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                    if teleg:
+                        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                        requests.get(url).json()
+                    warnings.warn(message)
         elif args.method == 'latents-execs':
             if 'n_execs' in params.keys():
                 n_execs = params['n_execs']
@@ -1191,6 +1221,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                             reconstructions_Post_AE.append(reconstruction_Post_AE)
                     save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                    # Exec finished
+                    message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                    if teleg:
+                        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                        requests.get(url).json()
+                    warnings.warn(message)
         elif args.method == 'latents-seasons-execs':
             if 'n_execs' in params.keys():
                 n_execs = params['n_execs']
@@ -1214,12 +1250,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                                 reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                                 reconstructions_Post_AE.append(reconstruction_Post_AE)
                         save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
-        # Everything finished
-        message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
-        if teleg:
-            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
-            requests.get(url).json()
-        warnings.warn(message)
+                        # Exec finished
+                        message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                        if teleg:
+                            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                            requests.get(url).json()
+                        warnings.warn(message)
     else:
         message = ValueError(f"Not recognized {args.method} method. The available methods are 'day' (default), 'days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs' or 'latents-seasons-execs'")
         if teleg:
@@ -1305,6 +1341,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             warnings.warn(message)
         else:
             runComparison(params)
+        # Everything finished
+        message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+            requests.get(url).json()
+        warnings.warn(message)
     elif method in ['days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs', 'latents-seasons-execs']:
         # Read file
         ## Try-except-else to open file and re-write params
@@ -1356,6 +1398,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                     reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                     reconstructions_Post_AE.append(reconstruction_Post_AE)
             save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+            # Exec finished
+            message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+            if teleg:
+                url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                requests.get(url).json()
+            warnings.warn(message)
         elif method == 'seasons':
             for season in params_multiple["season"]:
                 params["season"] = season
@@ -1373,6 +1421,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                         reconstructions_Post_AE.append(reconstruction_Post_AE)
                 save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                # Exec finished
+                message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                    requests.get(url).json()
+                warnings.warn(message)
         elif method == 'execs':
             if 'n_execs' in params.keys():
                 n_execs = params['n_execs']
@@ -1392,6 +1446,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                         reconstructions_Post_AE.append(reconstruction_Post_AE)
                 save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                # Exec finished
+                message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                    requests.get(url).json()
+                warnings.warn(message)
         elif method == 'latents':
             for latent in params_multiple["latent_dim"]:
                 params["latent_dim"] = latent
@@ -1409,6 +1469,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                         reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                         reconstructions_Post_AE.append(reconstruction_Post_AE)
                 save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                # Exec finished
+                message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                if teleg:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                    requests.get(url).json()
+                warnings.warn(message)
         elif method == 'seasons-execs':
             if 'n_execs' in params.keys():
                 n_execs = params["n_execs"]
@@ -1430,6 +1496,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                             reconstructions_Post_AE.append(reconstruction_Post_AE)
                     save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                    # Exec finished
+                    message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                    if teleg:
+                        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                        requests.get(url).json()
+                    warnings.warn(message)
         elif method == 'latents-execs':
             if 'n_execs' in params.keys():
                 n_execs = params['n_execs']
@@ -1451,6 +1523,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                             reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                             reconstructions_Post_AE.append(reconstruction_Post_AE)
                     save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                    # Exec finished
+                    message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                    if teleg:
+                        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                        requests.get(url).json()
+                    warnings.warn(message)
         elif method == 'latents-seasons-execs':
             if 'n_execs' in params.keys():
                 n_execs = params['n_execs']
@@ -1474,6 +1552,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                                 reconstructions_Pre_AE.append(reconstruction_Pre_AE)
                                 reconstructions_Post_AE.append(reconstruction_Post_AE)
                         save_reconstruction(params, reconstructions_Pre_Analog, reconstructions_Post_Analog, reconstructions_Pre_AE, reconstructions_Post_AE)
+                        # Exec finished
+                        message = f'Execution of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+                        if teleg:
+                            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                            requests.get(url).json()
+                        warnings.warn(message)
     else:
         message = ValueError(f"Not recognized {method} method. The available methods are 'day' (default), 'days', 'seasons', 'execs', 'latents', 'seasons-execs', 'latents-execs' or 'latents-seasons-execs'")
         if teleg:
