@@ -28,7 +28,7 @@ Welcome to va_am's documentation!
 Description
 ===========
 
-VA-AM is a Python package based on the deep learning enhancement of the classical statistical **Analogue Method**. It provides several
+VA-AM (Various Advanced - Analogue Methods) is a Python package based on the deep learning enhancement of the classical statistical **Analogue Method**. It provides several
 tools to analyse climatological **extreme events**, particularly **heat waves** (HW from now on).
 
 It alows you to perform the
