@@ -33,7 +33,7 @@ tools to analyse climatological **extreme events**, particularly **heat waves** 
 
 It alows you to perform the
 identification of the HW following `Russo index <https://iopscience.iop.org/article/10.1088/1748-9326/10/12/124003>`_, use the classical
-`Analogue Method <https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml>`_, use the enhanced Variational Autoencoder Analogue Method, and even define own/use diferent deep learning architectures for
+`Analogue Method <https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml>`_, use the enhanced Autoencoder Analogue Method, and even define own/use diferent deep learning architectures for
 the Analogue search.
 
 The source code is available at `github <https://github.com/cosminmarina/va_am>`_.
@@ -129,7 +129,7 @@ You can import :doc:`va_am <va_am>` as a library in your code and use the equiva
 
     from va_am import va_am
 
-    # Perform Variational Autoencoder Analogue search with default args
+    # Perform Autoencoder Analogue search with default args
     va_am()
 
 or 
@@ -138,7 +138,7 @@ or
 
     import va_am
 
-    # Perform Variational Autoencoder Analogue search with default args
+    # Perform Autoencoder Analogue search with default args
     va_am.va_am()
 
 .. note::

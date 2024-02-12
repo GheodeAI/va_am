@@ -2,9 +2,8 @@
 
 <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/distribution.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/identification.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/identification2.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/distribution2.png" width="200" />
 
-
 Documentation[#](#documentation "Permalink to this heading")
-------------------------------------------------------------
+--------------
 
 The documentation is available [here](https://va-am.readthedocs.io/).
 
@@ -12,18 +11,17 @@ The documentation is available [here](https://va-am.readthedocs.io/).
 - [How to](https://va-am.readthedocs.io/en/latest/how_to.html)
 - [License](https://va-am.readthedocs.io/en/latest/license.html)
 
-
 Description[#](#description "Permalink to this heading")
---------------------------------------------------------
+------------
+
 <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/va-am.png" width="200" />
 
-VA-AM is a Python package based on the deep learning enhancement of the classical statistical **Analogue Method**. It provides several tools to analyse climatological **extreme events**, particularly **heat waves** (HW from now on).
+VA-AM (Various Advanced - Analogue Methods) is a Python package based on the deep learning enhancement of the classical statistical **Analogue Method**. It provides several tools to analyse climatological **extreme events**, particularly **heat waves** (HW from now on).
 
-It alows you to perform the identification of the HW following [Russo index](https://iopscience.iop.org/article/10.1088/1748-9326/10/12/124003), use the classical [Analogue Method](https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml), use the enhanced Variational Autoencoder Analogue Method, and even define own/use diferent deep learning architectures for the Analogue search.
-
+It alows you to perform the identification of the HW following [Russo index](https://iopscience.iop.org/article/10.1088/1748-9326/10/12/124003), use the classical [Analogue Method](https://journals.ametsoc.org/view/journals/clim/12/8/1520-0442_1999_012_2474_tamaas_2.0.co_2.xml), use the enhanced Autoencoder Analogue Method, and even define own/use diferent deep learning architectures for the Analogue search.
 
 Installation[#](#installation "Permalink to this heading")
-----------------------------------------------------------
+-------------
 
 Latest version:
 
@@ -46,7 +44,7 @@ pip install git+https://github.com/cosminmarina/va_am
 ```
 
 Getting Started[#](#getting-started "Permalink to this heading")
-----------------------------------------------------------------
+----------------
 
 VA-AM can be used inside a python code as library, or directly outside of the code, as a executable. See both options:
 
@@ -60,7 +58,7 @@ python -m va_am -h
 
 Note
 
-You should obtain something like: 
+You should obtain something like:
 
 ```
 usage: __main__.py [-h] [-i] [-m METHOD] [-f CONF] [-sf SECRET] [-v] [-t]
@@ -122,7 +120,7 @@ Note
 
 The arguments of `va_am()` method are the same as the outside of code version. For more details see the [API reference](https://va-am.readthedocs.io/en/latest/va_am.html).
 
-
 Collaboration[#](#collaboration "Permalink to this heading")
-------------------------------------------------------------
+--------------
+
 If you find any bugs/issues or have any suggestions, please open an [issue](https://github.com/cosminmarina/va_am/issues/new).
