@@ -644,7 +644,7 @@ def perform_preprocess(params: dict) -> tuple:
         data_of_interest_prs = np.mean(data_of_interest_prs, axis=3)
         indust_prs = np.mean(indust_prs, axis=3)
 
-    return params, img_size, data_prs, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp
+    return params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp
     
 
 def runComparison(params: dict)-> tuple:
@@ -663,7 +663,19 @@ def runComparison(params: dict)-> tuple:
       : tuple
           A tuple of 4 elemets, each containing the corresponding reconstructions list data.
     """
-    params, img_size, data_prs, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params)
+    # Set teleg
+    is_teleg = False
+    token = None
+    chat_id = None
+    if "teleg" in params:
+        if params["teleg"]:
+            is_teleg = True
+            with open(params["secret_file"]) as f:
+                token = f.readline().strip()
+                chat_id = f.readline().strip()
+                user_name = f.readline().strip()
+            f.close()
+    params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params)
 
     if params["verbose"]:
         print('Reshape')
