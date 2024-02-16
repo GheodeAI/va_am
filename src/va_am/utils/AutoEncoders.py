@@ -1328,7 +1328,7 @@ class AE_conv():
             as an improvement.
         patience: number of epochs with no improvement adter wich
             training will be stoped.
-        respore_best_weigths: boolean whether to restore model weights
+        restore_best_weigths: boolean whether to restore model weights
             from the epoch with the best value of the monitored
             quantity
         

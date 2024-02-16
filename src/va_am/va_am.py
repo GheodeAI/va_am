@@ -402,11 +402,12 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
             xr_Post_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
             
 
-def runComparison(params: dict)-> tuple:
+
+def perform_preprocess(params: dict) -> tuple:
     """
-      runComparison                                      
+      perform_preprocess
        
-      Method that perform the preprocessing, use of the others previous methods, and comparison between analogSearch and AE + analogSearch.                
+      Method that perform the preprocessing stage
         
       Parameters
       ----------
@@ -416,7 +417,7 @@ def runComparison(params: dict)-> tuple:
       Returns
       ----------
       : tuple
-          A tuple of 4 elemets, each containing the corresponding reconstructions list data.
+          A tuple of all needed data.
     """
     # Set teleg
     is_teleg = False
@@ -494,6 +495,7 @@ def runComparison(params: dict)-> tuple:
     ## Load Temperature
     data_temp = temp.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     ### Pre-Industrial data
+    pre_indust_temp = None
     if params["period"] in ['both', 'pre']:
         pre_indust_temp = data_temp.sel(time=slice(params["pre_init"],params["pre_end"]))
     ### Industrial (or Post-Industrial) data
@@ -505,6 +507,7 @@ def runComparison(params: dict)-> tuple:
     ## Load Driver/predictor
     data_prs = prs.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     ### Pre-Industrial data
+    pre_indust_prs = None
     if params["period"] in ['both', 'pre']:
         pre_indust_prs = data_prs.sel(time=slice(params["pre_init"],params["pre_end"]))
     ### Industrial (or Post-Industrial) data
@@ -569,6 +572,8 @@ def runComparison(params: dict)-> tuple:
 
     # Train/Test split & normalization
     ## Train/test split for driver/predictor
+    x_train_pre_prs = None
+    x_test_pre_prs = None
     if params["period"] in ['both', 'pre']:
         x_train_pre_prs = pre_indust_prs.isel(time=slice(0,int(pre_indust_prs.dims.get('time')*0.75)))
         x_test_pre_prs = pre_indust_prs.isel(time=slice(int(pre_indust_prs.dims.get('time')*0.75), int(pre_indust_prs.dims.get('time'))))
@@ -577,6 +582,7 @@ def runComparison(params: dict)-> tuple:
     x_test_ind_prs = indust_prs.isel(time=slice(int(indust_prs.dims.get('time')*0.75), indust_prs.dims.get('time')))
 
     ## Get labels for time
+    time_pre_indust_prs = None
     if params["period"] in ['both', 'pre']:
         time_pre_indust_prs = pre_indust_prs.time
     time_indust_prs = indust_prs.time
@@ -606,7 +612,6 @@ def runComparison(params: dict)-> tuple:
             norm_scale_prs = np.max(np.array([x_train_pre_prs[prs_var].max()])) - min_scale_prs
 
         if params["period"] in ['both', 'pre']:
-            data[vars_names[0]].data = (data[vars_names[0]].data - min_val) / norm_scale
             x_train_pre_norm_prs[prs_var].data = (x_train_pre_prs[prs_var].data - min_scale_prs) / norm_scale_prs
             x_test_pre_norm_prs[prs_var].data = (x_test_pre_prs[prs_var].data - min_scale_prs) / norm_scale_prs
             pre_indust_norm_prs[prs_var].data = (pre_indust_prs[prs_var].data - min_scale_prs) / norm_scale_prs    
@@ -639,24 +644,26 @@ def runComparison(params: dict)-> tuple:
         data_of_interest_prs = np.mean(data_of_interest_prs, axis=3)
         indust_prs = np.mean(indust_prs, axis=3)
 
-    # if params["arch"]==8:
-    #     if params["period"] in ['both', 'pre']:
-    #         x_train_pre_prs = np.reshape(np.array(x_train_pre_norm_prs), (len(x_train_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    #         x_test_pre_prs = np.reshape(np.array(x_test_pre_norm_prs), (len(x_test_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    #         pre_indust_prs = np.reshape(np.array(pre_indust_norm_prs), (len(pre_indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    #     x_train_ind_prs = np.reshape(np.array(x_train_ind_norm_prs), (len(x_train_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    #     x_test_ind_prs = np.reshape(np.array(x_test_ind_norm_prs), (len(x_test_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    #     data_of_interest_prs = np.reshape(np.array(data_of_interest_norm_prs), (len(data_of_interest_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    #     indust_prs = np.reshape(np.array(indust_norm_prs), (len(indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude')))
-    # else:
-    #     if params["period"] in ['both', 'pre']:
-    #         x_train_pre_prs = np.reshape([x_train_pre_norm_prs.data], (len(x_train_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-    #         x_test_pre_prs = np.reshape([x_test_pre_norm_prs.data], (len(x_test_pre_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-    #         pre_indust_prs = np.reshape([pre_indust_norm_prs.data], (len(pre_indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-    #     x_train_ind_prs = np.reshape([x_train_ind_norm_prs.data], (len(x_train_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-    #     x_test_ind_prs = np.reshape([x_test_ind_norm_prs.data], (len(x_test_ind_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-    #     data_of_interest_prs = np.reshape([data_of_interest_norm_prs.data], (len(data_of_interest_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
-    #     indust_prs = np.reshape([indust_norm_prs.data], (len(indust_norm_prs), data_prs.dims.get('latitude'), data_prs.dims.get('longitude'), 1))
+    return params, img_size, data_prs, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp
+    
+
+def runComparison(params: dict)-> tuple:
+    """
+      runComparison                                      
+       
+      Method that perform the preprocessing, use of the others previous methods, and comparison between analogSearch and AE + analogSearch.                
+        
+      Parameters
+      ----------
+      params: dict
+         A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
+        
+      Returns
+      ----------
+      : tuple
+          A tuple of 4 elemets, each containing the corresponding reconstructions list data.
+    """
+    params, img_size, data_prs, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params)
 
     if params["verbose"]:
         print('Reshape')
@@ -688,7 +695,7 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'pre']:
             AE_pre = keras.models.load_model(params["file_AE_pre"], custom_objects={'keras': keras,'AutoEncoders': AutoEncoders})
         if params["period"] in ['both', 'post']:
-            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], indust_prs, params["file_AE_post"], params["verbose"])
+            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"])
         if params["verbose"]:
             print('Fitting finished for post & AE loaded for pre')
     else:
@@ -701,9 +708,9 @@ def runComparison(params: dict)-> tuple:
         else:
             input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
-            AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], pre_indust_prs, params["file_AE_pre"], params["verbose"])
+            AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_pre_prs, params["file_AE_pre"], params["verbose"])
         if params["period"] in ['both', 'post']:
-            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], indust_prs, params["file_AE_post"], params["verbose"])
+            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"])
         if params["verbose"]:
             print('Fitting finished')
     
@@ -711,11 +718,11 @@ def runComparison(params: dict)-> tuple:
     ## Stats analog
     if params["enhanced_distance"]:
         if params["period"] == 'both':
-            stat_data = np.concatenate(((indust_prs-data_of_interest_prs).flatten(),(pre_indust_prs-data_of_interest_prs).flatten()),axis=0)
+            stat_data = np.concatenate(((x_train_ind_prs-data_of_interest_prs).flatten(),(x_train_pre_prs-data_of_interest_prs).flatten()),axis=0)
         elif params["period"] == 'pre':
-            stat_data = (pre_indust_prs-data_of_interest_prs).flatten()
+            stat_data = (x_train_pre_prs_prs-data_of_interest_prs).flatten()
         else:
-            stat_data = (indust_prs-data_of_interest_prs).flatten()
+            stat_data = (x_train_ind_prs-data_of_interest_prs).flatten()
         stat_mean = np.abs(stat_data).mean()
         stat_std = np.abs(stat_data).std()
         stat_max = np.abs(stat_data).max()
@@ -730,11 +737,11 @@ def runComparison(params: dict)-> tuple:
     ## Stats AE
     if params["enhanced_distance"]:
         if params["period"] == 'both':
-            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, pre_indust_prs, indust_prs, data_of_interest_prs)
+            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_prs, x_train_ind_prs, data_of_interest_prs)
         elif params["period"] == 'pre':
-            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=pre_indust_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=x_train_pre_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
         else:
-            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=indust_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=x_train_ind_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
         print(f'Mean: {encoded.mean()}')
         print(f'Std: {encoded.std()}')
         print(f'Max AE: {encoded.max()}')
