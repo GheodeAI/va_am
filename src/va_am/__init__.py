@@ -7,4 +7,5 @@ from .va_am import (
     save_reconstruction,
     runComparison,
     identify_heatwave_days,
+    perform_preprocess,
     va_am)
