@@ -189,6 +189,18 @@ save_recons           bool                 Flag that indicates if the reconstruc
 percentile            int                  Wich percentile should be used during the
                                            identification step (default value
                                            ``90``).
+out_preprocess        str or list[str]     What to return from ``perform_preprocess``
+                                           function. Default value is ``all``. The 
+                                           possible output are: ``params``,
+                                           ``img_size``, ``data_prs``, ``data_temp``,
+                                           ``time_pre_indust_prs``,
+                                           ``time_indust_prs``,
+                                           ``data_of_interest_prs``,
+                                           ``data_of_interest_temp``,
+                                           ``x_train_pre_prs``, ``x_train_ind_prs``,
+                                           ``x_test_pre_prs``, ``x_test_ind_prs``,
+                                           ``pre_indust_prs``, ``pre_indust_temp``,
+                                           ``indust_prs``, ``indust_temp``
 ====================  ===================  ========================================== 
 
 
