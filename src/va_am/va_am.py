@@ -643,8 +643,33 @@ def perform_preprocess(params: dict) -> tuple:
         x_test_ind_prs = np.mean(x_test_ind_prs, axis=3)
         data_of_interest_prs = np.mean(data_of_interest_prs, axis=3)
         indust_prs = np.mean(indust_prs, axis=3)
+    d_return = {
+        "params": params,
+        "img_size": img_size,
+        "data_prs": data_prs,
+        "data_temp": data_temp,
+        "time_pre_indust_prs": time_pre_indust_prs,
+        "time_indust_prs": time_indust_prs,
+        "data_of_interest_prs": data_of_interest_prs,
+        "data_of_interest_temp": data_of_interest_temp,
+        "x_train_pre_prs": x_train_pre_prs,
+        "x_train_ind_prs": x_train_ind_prs,
+        "x_test_pre_prs": x_test_pre_prs,
+        "x_test_ind_prs": x_test_ind_prs,
+        "pre_indust_prs": pre_indust_prs,
+        "pre_indust_temp": pre_indust_temp,
+        "indust_prs": indust_prs,
+        "indust_temp": indust_temp
+    }
 
-    return params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp
+    if not "out_preprocess" in params.keys():
+        params["out_preprocess"] = "all"
+
+    if params["out_preprocess"] != "all":
+        return tuple(map(d_return.get, params["out_preprocess"]))
+    else:
+        return params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp
+    
     
 
 def runComparison(params: dict)-> tuple:
