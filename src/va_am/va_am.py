@@ -269,12 +269,14 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
     idx = np.random.choice(np.arange(prsf.shape[0]), size=iter, replace=replace_choice)
     
     selected_temp = prediction[idx,:,:]
+    #print(f'\nTime prediction: \n {np.shape(time_prediction)} \n {time_prediction}')
+    selected_time = time_prediction[idx]
     if is_not_encoded:
         selected_psr = prsf[idx,:,:,:]
     else:
         selected_psr = prsf[idx,:]
 
-    return selected_psr, selected_temp
+    return selected_psr, selected_temp, selected_time
 
 def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude_min: int, latitude_max: int, longitude_min: int, longitude_max: int, resolution: Union[int, float] = 2, is_teleg: bool = False, secret_file:str = './secret.txt') -> list:
     """
@@ -860,7 +862,8 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'pre']:
             dict_stats[f'WithoutAE-Pre{i}'] = [np.abs(data_of_interest_prs - analog_pre[0][i]).sum()/img_size,
                                     np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                    analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15]
+                                    analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+                                    analog_pre[2][i]]
             reconstruction_Pre_Analog.append(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithoutAE-Pre{i}'] = [np.nan, np.nan, np.nan]
@@ -868,7 +871,8 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'post']:
             dict_stats[f'WithoutAE-Post{i}'] = [np.abs(data_of_interest_prs - analog_ind[0][i]).sum()/img_size,
                                     np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                    analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15]
+                                    analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+                                    analog_ind[2][i]]
             reconstruction_Post_Analog.append(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithoutAE-Post{i}'] = [np.nan, np.nan, np.nan]
@@ -876,7 +880,8 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'pre']:
             dict_stats[f'WithAE-Pre-Pre{i}'] = [np.abs(data_of_interest_prs_encoded_pre - latent_analog_pre[0][i]).sum()/img_size,
                                         np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                        latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15]
+                                        latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+                                        latent_analog_pre[2][i]]
             reconstruction_Pre_AE.append(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nan, np.nan, np.nan]
@@ -884,7 +889,8 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'post']:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.abs(data_of_interest_prs_encoded_ind - latent_analog_ind[0][i]).sum()/img_size,
                                     np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                    latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15]
+                                    latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+                                    latent_analog_ind[2][i]]
             reconstruction_Post_AE.append(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nan, np.nan, np.nan]
@@ -894,7 +900,7 @@ def runComparison(params: dict)-> tuple:
         if params["verbose"]:
             print(f'Iteration {i} finished')
 
-    df_stats = pd.DataFrame.from_dict(dict_stats,orient='index',columns=['prs-diff','temp-diff','temp'])
+    df_stats = pd.DataFrame.from_dict(dict_stats,orient='index',columns=['prs-diff','temp-diff','temp','time'])
     Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
     df_stats.to_csv(f'./comparison-csv/{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
     return reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE
