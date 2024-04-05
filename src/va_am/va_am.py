@@ -543,12 +543,19 @@ def perform_preprocess(params: dict) -> tuple:
     data_of_interest_prs = indust_prs.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     
     if params["remove_year"]:
-        indust_temp = indust_temp.drop_sel(time=(indust_temp.sel(time=slice(params["data_of_interest_init"][:4],params["data_of_interest_end"][:4]))).get_index('time'))
-        indust_prs = indust_prs.drop_sel(time=(indust_prs.sel(time=slice(params["data_of_interest_init"][:4],params["data_of_interest_end"][:4]))).get_index('time'))
+        print(params["data_of_interest_init"])
+        print(type(params["data_of_interest_init"]))
+        t_i = str(params["data_of_interest_init"].year)
+        t_f = str(params["data_of_interest_end"].year)
+        print(t_i, t_f)
+        a = (indust_temp.sel(time=slice(t_i,t_f))).get_index('time')
+        print(a)
+        indust_temp = indust_temp.drop_sel(time=(indust_temp.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
+        indust_prs = indust_prs.drop_sel(time=(indust_prs.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
         if params["period"] == 'pre':
             if datetime.datetime.strptime(params["data_of_interest_init"], "%Y-%m-%d") < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
-                pre_indust_temp = pre_indust_temp.drop_sel(time=(pre_indust_temp.sel(time=slice(params["data_of_interest_init"][:4],params["data_of_interest_end"][:4]))).get_index('time'))
-                pre_indust_prs = pre_indust_prs.drop_sel(time=(pre_indust_prs.sel(time=slice(params["data_of_interest_init"][:4],params["data_of_interest_end"][:4]))).get_index('time'))        
+                pre_indust_temp = pre_indust_temp.drop_sel(time=(pre_indust_temp.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
+                pre_indust_prs = pre_indust_prs.drop_sel(time=(pre_indust_prs.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))        
     else:
         indust_temp = indust_temp.drop_sel(time=(indust_temp.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
         indust_prs = indust_prs.drop_sel(time=(indust_prs.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
