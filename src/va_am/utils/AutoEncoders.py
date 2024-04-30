@@ -1307,7 +1307,7 @@ class AE_conv():
         else:
             self.autoencoder.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-    def fit(self, x, y, epochs=100, batch_size=64, shuffle=True, validation_split=0.15, verbose=1, min_delta=3e-6, patience=10, restore_best_weights=True, mask=False):
+    def fit(self, x, y, epochs=100, batch_size=64, shuffle=True, validation_split=0.15, verbose=1, min_delta=3e-6, patience=10, restore_best_weights=True, mask=None):
         """
         Training of the AutoEncoder.
         Here we specify the parameters for our training.

@@ -327,7 +327,7 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
                     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
                     requests.get(url).json()
                 warnings.warn(message, stacklevel=2)
-            new_elem = max((elem - value_list[idx]) // resolution, 0)
+            new_elem = int(max((elem - value_list[idx]) // resolution, 0))
             new_interest_region.append(new_elem)
         else:
             if elem > value_list[idx]:
@@ -336,7 +336,7 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
                     url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
                     requests.get(url).json()
                 warnings.warn(message, stacklevel=2)
-            new_elem = min((elem - value_list[idx-1]) // resolution , (value_list[idx] - value_list[idx-1]) // resolution) + 1
+            new_elem = int(min((elem - value_list[idx-1]) // resolution , (value_list[idx] - value_list[idx-1]) // resolution) + 1)
             new_interest_region.append(new_elem)
     return new_interest_region
 
@@ -543,13 +543,6 @@ def perform_preprocess(params: dict) -> tuple:
     data_of_interest_prs = indust_prs.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     
     if params["remove_year"]:
-        print(params["data_of_interest_init"])
-        print(type(params["data_of_interest_init"]))
-        t_i = str(params["data_of_interest_init"].year)
-        t_f = str(params["data_of_interest_end"].year)
-        print(t_i, t_f)
-        a = (indust_temp.sel(time=slice(t_i,t_f))).get_index('time')
-        print(a)
         indust_temp = indust_temp.drop_sel(time=(indust_temp.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
         indust_prs = indust_prs.drop_sel(time=(indust_prs.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
         if params["period"] == 'pre':
@@ -1125,6 +1118,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
                 heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
+                heatwave_period = np.array(list(map(pd.Timestamp, heatwave_period)))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             params = params_multiple.copy()
@@ -1427,6 +1421,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
                 heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
+                heatwave_period = np.array(list(map(pd.Timestamp, heatwave_period)))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             params = params_multiple.copy()
