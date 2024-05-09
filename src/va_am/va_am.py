@@ -1690,7 +1690,7 @@ def va_am(ident:bool=False, method:str='day', config_file:str='params.json', sec
     params_multiple = None
     file_params_name = config_file
     n_execs = 5
-    verb = verbose
+    verb = None
     token = None
     chat_id = None
     user_name = None

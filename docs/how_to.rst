@@ -49,7 +49,17 @@ a configuration file. It has to be a `JSON <https://en.wikipedia.org/wiki/JSON>`
         "ident_dataset":            "~/path/to/data_dailyMax_t2m_1940-2022.nc",
         "temp_var_name":            "t2m_dailyMax",
         "p":                        2,
-        "enhanced_distance":        true
+        "enhanced_distance":        true,
+        "compile_params":           {
+                                        "optimizer":"adamax",
+                                        "loss":"mape",
+                                        "metrics":["mae", "mse"]
+                                    },
+        "fit_params":               {
+                                        "batch_size":64,
+                                        "shuffle":true,
+                                        "validation_split":0.15
+                                    }
     }
 
 By the flag ``-f`` | ``--configfile`` or the ``config_file`` parameter you can provide the Path
