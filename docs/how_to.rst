@@ -211,6 +211,17 @@ out_preprocess        str or list[str]     What to return from ``perform_preproc
                                            ``x_test_pre_prs``, ``x_test_ind_prs``,
                                            ``pre_indust_prs``, ``pre_indust_temp``,
                                            ``indust_prs``, ``indust_temp``
+compile_params        dict                 Dictionary wich contains the configuration
+                                           input arguments for the `model.compile() h
+                                           ttps://keras.io/api/models/model_training_
+                                           apis/#compile-method`_ method, depending
+                                           on the tensorflow/keras version.
+fit_params            dict                 Dictionary wich contains the configuration
+                                           input arguments for the `model.fit() https
+                                           ://keras.io/api/models/model_training_apis
+                                           /#fit-method`_ method, except for epochs 
+                                           and verbose, depending on the
+                                           tensorflow/keras version.
 ====================  ===================  ========================================== 
 
 
