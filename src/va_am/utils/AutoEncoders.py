@@ -1283,7 +1283,8 @@ class AE_conv():
 
         
         
-    def compile(self, optimizer='adam', loss='mse', metrics=['mae', 'mape']):
+    #def compile(self, optimizer='adam', loss='mse', metrics=['mae', 'mape'], **kwargs):
+    def compile(self, **kwargs):
         """
         Compilation of the AutoEncoder.
         Here we specify the method to optimize, the loss function and,
@@ -1291,51 +1292,56 @@ class AE_conv():
         
         Parameters
         ----------
-        optimizer: the method to use for optimization. It sould be one
-            of tensorflow.keras.optimizers.
-        loss: loss function to be optmized. It sould be one of 
-            tensorflow.keras.losses.
-        metrics: list of metrics to be evaluated by the model during 
-            training and testing. It sould be one of
-            tensorflow.keras.losses.
+        **kwargs: dict
+            all available parameters for fit method at the keras/tensorflow version. If not specified, the default paramaters are optimizer=Adam, loss=mse, metrics=[mae, mape].
+        
         Returns
         ----------
+        :
         No output, only compile the model.
         """
+        default_compile_params = {"optimizer":"adam", "loss":"mse", "metrics":["mae", "mape"]}
+        if kwargs:
+            default_compile_params.update(kwargs)
         if self.arch in [4, 14, 15]:
-            self.autoencoder.compile(optimizer=optimizer, metrics=metrics)
+            if "loss" in kwargs.keys():
+                kwargs.pop("loss")
+            self.autoencoder.compile(**default_compile_params)
         else:
-            self.autoencoder.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+            self.autoencoder.compile(**default_compile_params)
 
-    def fit(self, x, y, epochs=100, batch_size=64, shuffle=True, validation_split=0.15, verbose=1, min_delta=3e-6, patience=10, restore_best_weights=True, mask=None):
+    def fit(self, x, y, epochs=100, verbose=1, min_delta=3e-6, patience=10, restore_best_weights=True, mask=None, **kwargs):
         """
         Training of the AutoEncoder.
         Here we specify the parameters for our training.
 
         Parameters
         ----------
-        x: input data.
-        y: output data (data to be compared and trained).
-        batch_size: int or None. Number of samples per epoch (gradient
-            update).
-        shuffle: boolean whether to shuddle the training data before
-            each epoch.
-        validation_split: float between 0 and 1. Fraction of the 
-            training data to be used as validation data.
-        verbose: 'auto', 0, 1 or 2. Differents modes of verbosity when
-            the model is trained.
-        min_delta: minimum change in the monitored quantity to qualify
-            as an improvement.
-        patience: number of epochs with no improvement adter wich
-            training will be stoped.
-        restore_best_weigths: boolean whether to restore model weights
-            from the epoch with the best value of the monitored
-            quantity
+        x:
+            input data.
+        y:
+            output data (data to be compared and trained).
+        epochs: int
+            number of epochs to train the model.
+        verbose: 'auto', 0, 1 or 2.
+            differents modes of verbosity when the model is trained.
+        min_delta: int or float
+            minimum change in the monitored quantity to qualify as an improvement.
+        patience: int
+            number of epochs with no improvement adter wich training will be stoped.
+        restore_best_weigths: bool
+            whether to restore model weights from the epoch with the best value of the monitoredquantity
+        **kwargs: dict
+            all available parameters for fit method at the keras/tensorflow version, except verbose and epochs
         
         Returns
         ----------
+        : History
         A History object. See History.history.
         """
+        default_fit_params = {"batch_size":64}
+        if kwargs:
+            default_fit_params.update(kwargs)
         callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=min_delta, patience=patience,
                                     restore_best_weights=restore_best_weights)
         if mask is not None:
@@ -1346,10 +1352,8 @@ class AE_conv():
                 y = x
         history = self.autoencoder.fit(x, y,
                             epochs=epochs,
-                            shuffle=shuffle,
-                            validation_split=validation_split,
-                            batch_size=batch_size,
                             callbacks=callback,
-                            verbose=verbose
+                            verbose=verbose,
+                            **default_fit_params
                             )
         return history
