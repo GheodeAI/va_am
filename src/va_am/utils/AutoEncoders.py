@@ -1339,7 +1339,7 @@ class AE_conv():
         : History
         A History object. See History.history.
         """
-        default_fit_params = {"batch_size":64}
+        default_fit_params = {"batch_size":64, "validation_split":0.15}
         if kwargs:
             default_fit_params.update(kwargs)
         callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=min_delta, patience=patience,
