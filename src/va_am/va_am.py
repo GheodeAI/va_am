@@ -54,7 +54,7 @@ def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int
     y_size = size//x_size
     return (x_size, y_size) if x_size < y_size else (y_size, x_size)
 
-def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE: bool, with_cpu: bool, n_epochs: int, data_prs: Union[np.ndarray, list, xr.DataArray], file_save: str, verbose: bool):
+def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE: bool, with_cpu: bool, n_epochs: int, data_prs: Union[np.ndarray, list, xr.DataArray], file_save: str, verbose: bool, compile_params: dict = {}, fit_params : dict() = {}):
     """
       runAE
        
@@ -72,14 +72,18 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
          Value that determines if the model should be a Variational Autoencoder or not.
       with_cpu: bool
          Value that determines if the cpu should be used instead of (default) gpu.
-      verbose: bool
-         Value that determines if the execution information should be displayed.  
       n_epochs: int 
          The number of epochs for the keras.model.                     
       data_prs: np.ndarray
          Driver/predictor data (usually) to train the model.        
       file_save: str
-         Where to save the .h5 model.            
+         Where to save the .h5 model.
+      verbose: bool
+         Value that determines if the execution information should be displayed.  
+      compile_params: dict
+         Dictionary that contains all the parameters (avaible depending on tensorflow/keras version) to use for the .compile() function. 
+      fit_params: dict
+         Dictionary that contains all the parametes (avaible depending on tensorflow/keras version) to use for the .fit() function, except for epochs and verbose.
         
       Returns
       ----------                                            
@@ -91,15 +95,15 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
         with tf.device("/cpu:0"):
             AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_prs)[-1],out_channels=np.shape(data_prs)[-1],VAE=use_VAE)
 
-            AE.compile(optimizer='adam', loss='mse')
+            AE.compile(**compile_params)
 
-            history = AE.fit(data_prs, data_prs, epochs=n_epochs, batch_size=128, min_delta=1e-6, patience=50, verbose=verbose)
+            history = AE.fit(data_prs, data_prs, epochs=n_epochs, min_delta=1e-6, patience=50, verbose=verbose, **fit_params)
     else:
         AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_prs)[-1],out_channels=np.shape(data_prs)[-1],VAE=use_VAE)
 
-        AE.compile(optimizer='adam', loss='mse')
+        AE.compile(**compile_params)
 
-        history = AE.fit(data_prs, data_prs, epochs=n_epochs, batch_size=128, min_delta=1e-6, patience=50, verbose=verbose)
+        history = AE.fit(data_prs, data_prs, epochs=n_epochs, min_delta=1e-6, patience=50, verbose=verbose, **fit_params)
 
     Path("./figures").mkdir(parents=True, exist_ok=True)
     plt.plot(history.history['loss'],label='loss')
@@ -715,6 +719,10 @@ def runComparison(params: dict)-> tuple:
         print(np.shape(indust_temp[params["temp_var_name"]].data))
 
     # AutoEncoder
+    if not "compile_params" in params.keys():
+        params["compile_params"] = {}
+    if not "fit_params" in params.keys():
+        params["fit_params"] = {}
     if params["load_AE"]:
         if params["period"] in ['both', 'pre']:
             AE_pre = keras.models.load_model(params["file_AE_pre"], custom_objects={'keras': keras,'AutoEncoders': AutoEncoders})
@@ -734,7 +742,7 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'pre']:
             AE_pre = keras.models.load_model(params["file_AE_pre"], custom_objects={'keras': keras,'AutoEncoders': AutoEncoders})
         if params["period"] in ['both', 'post']:
-            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"])
+            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"], params["compile_params"], params["fit_params"])
         if params["verbose"]:
             print('Fitting finished for post & AE loaded for pre')
     else:
@@ -747,9 +755,9 @@ def runComparison(params: dict)-> tuple:
         else:
             input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
-            AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_pre_prs, params["file_AE_pre"], params["verbose"])
+            AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_pre_prs, params["file_AE_pre"], params["verbose"], params["compile_params"], params["fit_params"])
         if params["period"] in ['both', 'post']:
-            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"])
+            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"], params["compile_params"], params["fit_params"])
         if params["verbose"]:
             print('Fitting finished')
     
@@ -1682,7 +1690,7 @@ def va_am(ident:bool=False, method:str='day', config_file:str='params.json', sec
     params_multiple = None
     file_params_name = config_file
     n_execs = 5
-    verb = verbose
+    verb = None
     token = None
     chat_id = None
     user_name = None
