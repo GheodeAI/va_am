@@ -202,6 +202,15 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
         res = ind_encoded
     return res
 
+def am(params: dict, ident: bool, teleg: bool, save_recons: bool, teleg_file: str = '.secret.txt'):
+    # Perform preprocessing 
+    # perform_preoprocess()
+    
+    # Call analogSearch
+    # analogSearch()
+
+    # Post process
+    return
 
 def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
     """
