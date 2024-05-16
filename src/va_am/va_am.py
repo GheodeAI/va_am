@@ -1011,6 +1011,19 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
 
     return heatwave_period
 
+def post_process(params_file: str, save_stats:bool):
+    # Read params
+
+    # Perform post-process
+    ## Obtain stats
+    ## Make plot
+    ## Save plot
+    # if save_stats save stats
+    # else print stats
+    
+    return
+
+
 def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, args):
     """
       _step_loop
