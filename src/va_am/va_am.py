@@ -258,13 +258,6 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
         ax_to_sum = np.arange(len(np.shape(data_diff)))[1:]
         dist += np.sum(d, axis=tuple(ax_to_sum)) + threshold_offset_counter
 
-    # d = np.zeros_like(data_diff)
-    # d[data_diff <= threshold] = -1
-    # if is_not_encoded:
-    #     dist = np.sum(d, axis=(1,2,3)) + threshold_offset_counter + (np.sum(data_diff, axis=(1,2,3)) / img_size)
-    # else:
-    #     dist = np.sum(d, axis=1) + threshold_offset_counter + (np.sum(data_diff, axis=1) / img_size)
-
     minindex = dist.argsort()
     time_prediction = time_prs[minindex[:k]]
     prediction = data_temp.sel(time=time_prediction[:k])[temp_var_name].data
@@ -374,20 +367,12 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
             Path("./data").mkdir(parents=True, exist_ok=True)
             reconstruction_Pre_Analog = np.mean(reconstructions_Pre_Analog, axis=0)
             print('Size Recons Pre Analog: ', np.size(reconstruction_Pre_Analog))
-            # reconstruction_Post_Analog = np.mean(reconstructions_Post_Analog, axis=0)
-            # print('Size Recons Post Analog: ', np.size(reconstruction_Post_Analog))
             xr_Pre_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Pre_Analog)),
                                     coords=dict(reconstruction = np.arange(params["iter"]),
                                                 latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
                                                 longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
                                                 ))
             xr_Pre_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Pre-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
-            # xr_Post_Analog = xr.Dataset(data_vars=dict(y=(["reconstruction", "latitude", "longitude"], reconstruction_Post_Analog)),
-            #                            coords=dict(reconstruction = np.arange(params["iter"]),
-            #                                        latitude = np.arange(int_reg[0], int_reg[1]+resolution, resolution),
-            #                                        longitude = np.arange(int_reg[2], int_reg[3]+resolution, resolution)
-            #                                       ))
-            # xr_Post_Analog.to_netcdf(f'./data/reconstruction-{params["season"]}{params["name"]}x{params["iter"]}-Post-AM-{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.nc'.replace(" ","").replace("'", "").replace(",",""))
         if params["period"] in ["both", "post"]:
             Path("./data").mkdir(parents=True, exist_ok=True)
             reconstruction_Post_AE = np.mean(reconstructions_Post_AE, axis=0)
