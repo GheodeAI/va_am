@@ -1,5 +1,5 @@
 import pytest
-import va_am
+from src import va_am
 import sys
 import numpy as np
 
