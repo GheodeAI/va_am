@@ -521,6 +521,14 @@ def perform_preprocess(params: dict) -> tuple:
         
         indust_temp = indust_temp.resample(time="7D").mean()
         indust_prs = indust_prs.resample(time="7D").mean()
+    ## Mean over month
+    if params["per_what"] == "per_month":
+        if params["period"] in ['both', 'pre']:
+            pre_indust_temp = pre_indust_temp.resample(time="1M").mean()
+            pre_indust_prs = pre_indust_prs.resample(time="1M").mean()
+        
+        indust_temp = indust_temp.resample(time="1M").mean()
+        indust_prs = indust_prs.resample(time="1M").mean()
     elif params["per_what"] != "per_day":
         message = ValueError(f'Per what? What is {params["pre_what"]} supposed to be? For now I only understand per_week and per_day')
         if is_teleg:
