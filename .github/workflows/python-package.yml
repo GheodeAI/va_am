@@ -5,7 +5,7 @@ name: Python package
 
 on:
   push:
-    branches: [ "feature/pytest" ]
+    branches: [ "feature/pytest", "master", "realese/**" ]
   pull_request:
     branches: [ "master" ]
 
