@@ -524,11 +524,11 @@ def perform_preprocess(params: dict) -> tuple:
     ## Mean over month
     if params["per_what"] == "per_month":
         if params["period"] in ['both', 'pre']:
-            pre_indust_temp = pre_indust_temp.resample(time="1M").mean()
-            pre_indust_prs = pre_indust_prs.resample(time="1M").mean()
+            pre_indust_temp = pre_indust_temp.resample(time="MS", closed="left", label="left").mean()
+            pre_indust_prs = pre_indust_prs.resample(time="MS", closed="left", label="left").mean()
         
-        indust_temp = indust_temp.resample(time="1M").mean()
-        indust_prs = indust_prs.resample(time="1M").mean()
+        indust_temp = indust_temp.resample(time="MS", closed="left", label="left").mean()
+        indust_prs = indust_prs.resample(time="MS", closed="left", label="left").mean()
     elif params["per_what"] != "per_day":
         message = ValueError(f'Per what? What is {params["pre_what"]} supposed to be? For now I only understand per_week and per_day')
         if is_teleg:
@@ -795,6 +795,7 @@ def runComparison(params: dict)-> tuple:
     if params["interest_region_type"] == "coord":
         int_reg = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], is_teleg, params["secret_file"])
 
+    print(f'int_reg:\n{int_reg}\n')
     ## This is the threshold of difference between driver/predictor maps and target
     ## to be acepted as low difference
     ## Only used for the local proximity of enhanced distance
@@ -1118,7 +1119,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
-                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
+                if params_multiple["per_what"] == "per_month":
+                    heatwave_period = (pd.date_range(start=params_multiple["data_of_interest_init"], end=params_multiple["data_of_interest_end"], freq='MS')).to_numpy()
+                elif params_multiple["per_what"] == "per_week":
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(weeks=1))
+                else:
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
                 heatwave_period = np.array(list(map(pd.Timestamp, heatwave_period)))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
@@ -1421,7 +1427,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
-                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
+                if params_multiple["per_what"] == "per_month":
+                    heatwave_period = (pd.date_range(start=params_multiple["data_of_interest_init"], end=params_multiple["data_of_interest_end"], freq='MS')).to_numpy()
+                elif params_multiple["per_what"] == "per_week":
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(weeks=1))
+                else:
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
                 heatwave_period = np.array(list(map(pd.Timestamp, heatwave_period)))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
