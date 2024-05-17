@@ -521,6 +521,14 @@ def perform_preprocess(params: dict) -> tuple:
         
         indust_temp = indust_temp.resample(time="7D").mean()
         indust_prs = indust_prs.resample(time="7D").mean()
+    ## Mean over month
+    if params["per_what"] == "per_month":
+        if params["period"] in ['both', 'pre']:
+            pre_indust_temp = pre_indust_temp.resample(time="MS", closed="left", label="left").mean()
+            pre_indust_prs = pre_indust_prs.resample(time="MS", closed="left", label="left").mean()
+        
+        indust_temp = indust_temp.resample(time="MS", closed="left", label="left").mean()
+        indust_prs = indust_prs.resample(time="MS", closed="left", label="left").mean()
     elif params["per_what"] != "per_day":
         message = ValueError(f'Per what? What is {params["pre_what"]} supposed to be? For now I only understand per_week and per_day')
         if is_teleg:
@@ -787,6 +795,7 @@ def runComparison(params: dict)-> tuple:
     if params["interest_region_type"] == "coord":
         int_reg = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], is_teleg, params["secret_file"])
 
+    print(f'int_reg:\n{int_reg}\n')
     ## This is the threshold of difference between driver/predictor maps and target
     ## to be acepted as low difference
     ## Only used for the local proximity of enhanced distance
@@ -853,42 +862,42 @@ def runComparison(params: dict)-> tuple:
     reconstruction_Post_AE = []
     for i in range(params["iter"]):
         if params["period"] in ['both', 'pre']:
-            dict_stats[f'WithoutAE-Pre{i}'] = [np.abs(data_of_interest_prs - analog_pre[0][i]).sum()/img_size,
-                                    np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                    analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+            dict_stats[f'WithoutAE-Pre{i}'] = [np.nansum(np.abs(data_of_interest_prs - analog_pre[0][i]))/img_size,
+                                    np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                    np.nanmean(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
                                     str(analog_pre[2][i].data)[:10]]
             reconstruction_Pre_Analog.append(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithoutAE-Pre{i}'] = [np.nan, np.nan, np.nan]
         
         if params["period"] in ['both', 'post']:
-            dict_stats[f'WithoutAE-Post{i}'] = [np.abs(data_of_interest_prs - analog_ind[0][i]).sum()/img_size,
-                                    np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                    analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+            dict_stats[f'WithoutAE-Post{i}'] = [np.nansum(np.abs(data_of_interest_prs - analog_ind[0][i]))/img_size,
+                                    np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                    np.nanmean(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
                                     str(analog_ind[2][i].data)[:10]]
             reconstruction_Post_Analog.append(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithoutAE-Post{i}'] = [np.nan, np.nan, np.nan]
         
         if params["period"] in ['both', 'pre']:
-            dict_stats[f'WithAE-Pre-Pre{i}'] = [np.abs(data_of_interest_prs_encoded_pre - latent_analog_pre[0][i]).sum()/img_size,
-                                        np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                        latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+            dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nansum(np.abs(data_of_interest_prs_encoded_pre - latent_analog_pre[0][i]))/img_size,
+                                        np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                        np.nanmean(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
                                         str(latent_analog_pre[2][i].data)[:10]]
             reconstruction_Pre_AE.append(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nan, np.nan, np.nan]
 
         if params["period"] in ['both', 'post']:
-            dict_stats[f'WithAE-Post-Post{i}'] = [np.abs(data_of_interest_prs_encoded_ind - latent_analog_ind[0][i]).sum()/img_size,
-                                    np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean(),
-                                    latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]].mean()-273.15,
+            dict_stats[f'WithAE-Post-Post{i}'] = [np.nansum(np.abs(data_of_interest_prs_encoded_ind - latent_analog_ind[0][i]))/img_size,
+                                    np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                    np.nanmean(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
                                     str(latent_analog_ind[2][i].data)[:10]]
             reconstruction_Post_AE.append(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nan, np.nan, np.nan]
 
-        dict_stats[f'Original{i}']=[0,0,((data_of_interest_temp[params["temp_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]).mean()-273.15]
+        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_temp[params["temp_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))-273.15]
         
         if params["verbose"]:
             print(f'Iteration {i} finished')
@@ -1110,7 +1119,12 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
-                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
+                if params_multiple["per_what"] == "per_month":
+                    heatwave_period = (pd.date_range(start=params_multiple["data_of_interest_init"], end=params_multiple["data_of_interest_end"], freq='MS')).to_numpy()
+                elif params_multiple["per_what"] == "per_week":
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(weeks=1))
+                else:
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
                 heatwave_period = np.array(list(map(pd.Timestamp, heatwave_period)))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
@@ -1413,7 +1427,12 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
             else:
-                heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
+                if params_multiple["per_what"] == "per_month":
+                    heatwave_period = (pd.date_range(start=params_multiple["data_of_interest_init"], end=params_multiple["data_of_interest_end"], freq='MS')).to_numpy()
+                elif params_multiple["per_what"] == "per_week":
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(weeks=1))
+                else:
+                    heatwave_period = np.arange(datetime.datetime.strptime(params_multiple["data_of_interest_init"], '%Y-%m-%d'), datetime.datetime.strptime(params_multiple["data_of_interest_end"], '%Y-%m-%d'), datetime.timedelta(days=1))
                 heatwave_period = np.array(list(map(pd.Timestamp, heatwave_period)))
                 params_multiple["data_of_interest_init"] = heatwave_period
                 params_multiple["data_of_interest_end"] = heatwave_period
