@@ -1283,7 +1283,6 @@ class AE_conv():
 
         
         
-    #def compile(self, optimizer='adam', loss='mse', metrics=['mae', 'mape'], **kwargs):
     def compile(self, **kwargs):
         """
         Compilation of the AutoEncoder.

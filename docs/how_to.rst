@@ -146,10 +146,11 @@ iter                  int                  Number of random extraction to perfor
                                            order to make a reconstruction of the 
                                            event.
 per_what              str                  String to specify if the analysis should 
-                                           be diary (``per_day``) or weekly
-                                           (``per_week``). Until now, this are the 
-                                           available option. In later versions montly
-                                           and yearly analysis will be avaiable.
+                                           be diary (``per_day``), weekly
+                                           (``per_week``), monthly (``per_month``).
+                                           Until now, this are the available option.
+                                           In later versions yearly analysis will
+                                           be avaiable.
 remove_year           bool                 Flag that indicates if the year of the 
                                            interest period should be removed entirely
                                            or not. If false, only the period between
