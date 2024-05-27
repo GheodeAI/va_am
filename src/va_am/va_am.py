@@ -974,10 +974,8 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     plt.xticks(rotation=45)
     plt.plot(time_x, (percentile_threshold_array - 273.15), color='r', label=f'p{which_percentile} threshold')
     if params["verbose"]:
-        #plt.show()
         print(f'Threshold: {percentile_threshold_array - 273.15}')
         print(f'Amount of days that surpass the threshold: {amount_surpass_threshold}' )
-    plt.close()
 
     if amount_surpass_threshold == len(data_temp_array):
         heatwave_period = time_x#.astype('datetime64[D]')
