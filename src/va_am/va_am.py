@@ -275,7 +275,7 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
 
     return selected_psr, selected_temp, selected_time
 
-def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude_min: int, latitude_max: int, longitude_min: int, longitude_max: int, resolution: Union[int, float] = 2, is_teleg: bool = False, secret_file:str = './secret.txt') -> list:
+def calculate_interest_region(interest_region: Union[list, np.ndarray], dims_list: int, resolution: Union[int, float, str] = 2, is_teleg: bool = False, secret_file:str = './secret.txt') -> list:
     """
       calculate_interest_region
        
@@ -285,16 +285,10 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
       ----------
       interest_region: list or ndarray
           List which contains the latitude and longitude degrees to be converted as index. 
-      latitude_min: int
-          The latitude minimum limit.
-      latitude_max: int
-          The latitude maximum limit.
-      longitude_min: int
-          The longitude minimum limit.
-      longitude_max: int
-          The longitude maximum limit.
-      resolution: int or float
-          Degrees resolution employed. Default value is 2º.
+      dims_list: list of int
+          List that contain, in this order, the minimum latitude, maximum latitude, minumin longitude, maximum longitude. When resolution is 'auto', dims_list should be a tuple with (latitude, longitude).
+      resolution: int, float or str
+          Degrees resolution employed. Default value is 2º. If resolution is 'auto' it will infer automatically the resolution (useful when resolution is not constant along the dimensions)
       is_teleg: bool
           Flag that indicate if the warnings have to be sent to Telegram or not.
       secret_file: str
@@ -314,27 +308,36 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], latitude
             user_name = f.readline().strip()
         f.close()
 
-    value_list = [latitude_min, latitude_max, longitude_min, longitude_max]
-    new_interest_region = []
-    for idx, elem in enumerate(interest_region):
-        if idx%2==0:
-            if elem < value_list[idx]:
-                message = 'Your interest region is out of lat or lon minimum limits. I correct it, but be aware'
-                if is_teleg:
-                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
-                    requests.get(url).json()
-                warnings.warn(message, stacklevel=2)
-            new_elem = int(max((elem - value_list[idx]) // resolution, 0))
-            new_interest_region.append(new_elem)
-        else:
-            if elem > value_list[idx]:
-                message = 'Your interest region is out of lat or lon maximum limits. I correct it, but be aware'
-                if is_teleg:
-                    url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
-                    requests.get(url).json()
-                warnings.warn(message, stacklevel=2)
-            new_elem = int(min((elem - value_list[idx-1]) // resolution , (value_list[idx] - value_list[idx-1]) // resolution) + 1)
-            new_interest_region.append(new_elem)
+    
+    if resolution=='auto':
+        new_interest_region = np.zeros(4)
+        lat, lon = dims_list
+        new_interest_region[0] = np.where(np.isclose(int_reg[0], lat))[0][0]
+        new_interest_region[1] = np.where(np.isclose(int_reg[1], lat))[0][0]
+        new_interest_region[2] = np.where(np.isclose(int_reg[2], lon))[0][0]
+        new_interest_region[3] = np.where(np.isclose(int_reg[3], lon))[0][0]
+        new_interest_region = new_interest_region.astype(int).tolist()
+    else:
+        new_interest_region = []
+        for idx, elem in enumerate(interest_region):
+            if idx%2==0:
+                if elem < dims_list[idx]:
+                    message = 'Your interest region is out of lat or lon minimum limits. I correct it, but be aware'
+                    if is_teleg:
+                        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                        requests.get(url).json()
+                    warnings.warn(message, stacklevel=2)
+                new_elem = int(max((elem - dims_list[idx]) // resolution, 0))
+                new_interest_region.append(new_elem)
+            else:
+                if elem > dims_list[idx]:
+                    message = 'Your interest region is out of lat or lon maximum limits. I correct it, but be aware'
+                    if is_teleg:
+                        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+                        requests.get(url).json()
+                    warnings.warn(message, stacklevel=2)
+                new_elem = int(min((elem - dims_list[idx-1]) // resolution , (dims_list[idx] - dims_list[idx-1]) // resolution) + 1)
+                new_interest_region.append(new_elem)
     return new_interest_region
 
 def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstructions_Post_Analog: list, reconstructions_Pre_AE: list, reconstructions_Post_AE: list):
@@ -793,7 +796,10 @@ def runComparison(params: dict)-> tuple:
     current = datetime.datetime.now()
     int_reg = params["interest_region"]
     if params["interest_region_type"] == "coord":
-        int_reg = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], is_teleg, params["secret_file"])
+        if params["resolution"] is 'auto':
+            int_reg = calculate_interest_region(params["interest_region"], (data_temp.latitude.data, data_temp.longitude.data), params["resolution"], is_teleg, params["secret_file"])
+        else:
+            int_reg = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], is_teleg, params["secret_file"])
 
     print(f'int_reg:\n{int_reg}\n')
     ## This is the threshold of difference between driver/predictor maps and target
@@ -950,7 +956,10 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     ## Extract interest data
     idx_interest = params["interest_region"]
     if params["interest_region_type"] == "coord":
-        idx_interest = calculate_interest_region(params["interest_region"], params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"], params["resolution"], params["teleg"], params["secret_file"])
+        if params["resolution"] is 'auto':
+            idx_interest = calculate_interest_region(params["interest_region"], (data_temp.latitude.data, data_temp.longitude.data), params["resolution"], params["teleg"], params["secret_file"])
+        else:
+            idx_interest = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], params["teleg"], params["secret_file"])
     data_temp = data_temp.isel(latitude=slice(idx_interest[0], idx_interest[1]),longitude=slice(idx_interest[2], idx_interest[3]))
     data_temp = data_temp.mean(dim=['latitude', 'longitude'])
     
