@@ -312,10 +312,10 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], dims_lis
     if resolution=='auto':
         new_interest_region = np.zeros(4)
         lat, lon = dims_list
-        new_interest_region[0] = np.where(np.isclose(int_reg[0], lat))[0][0]
-        new_interest_region[1] = np.where(np.isclose(int_reg[1], lat))[0][0]
-        new_interest_region[2] = np.where(np.isclose(int_reg[2], lon))[0][0]
-        new_interest_region[3] = np.where(np.isclose(int_reg[3], lon))[0][0]
+        new_interest_region[0] = np.where(np.isclose(interest_region[0], lat))[0][0]
+        new_interest_region[1] = np.where(np.isclose(interest_region[1], lat))[0][0]
+        new_interest_region[2] = np.where(np.isclose(interest_region[2], lon))[0][0]
+        new_interest_region[3] = np.where(np.isclose(interest_region[3], lon))[0][0] + 1
         new_interest_region = new_interest_region.astype(int).tolist()
     else:
         new_interest_region = []
@@ -796,7 +796,7 @@ def runComparison(params: dict)-> tuple:
     current = datetime.datetime.now()
     int_reg = params["interest_region"]
     if params["interest_region_type"] == "coord":
-        if params["resolution"] is 'auto':
+        if params["resolution"] == 'auto':
             int_reg = calculate_interest_region(params["interest_region"], (data_temp.latitude.data, data_temp.longitude.data), params["resolution"], is_teleg, params["secret_file"])
         else:
             int_reg = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], is_teleg, params["secret_file"])
@@ -956,7 +956,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     ## Extract interest data
     idx_interest = params["interest_region"]
     if params["interest_region_type"] == "coord":
-        if params["resolution"] is 'auto':
+        if params["resolution"] == 'auto':
             idx_interest = calculate_interest_region(params["interest_region"], (data_temp.latitude.data, data_temp.longitude.data), params["resolution"], params["teleg"], params["secret_file"])
         else:
             idx_interest = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], params["teleg"], params["secret_file"])
