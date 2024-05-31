@@ -870,7 +870,7 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'pre']:
             dict_stats[f'WithoutAE-Pre{i}'] = [np.nansum(np.abs(data_of_interest_prs - analog_pre[0][i]))/img_size,
                                     np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
-                                    np.nanmean(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
+                                    np.nanmean(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(analog_pre[2][i].data)[:10]]
             reconstruction_Pre_Analog.append(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
@@ -879,7 +879,7 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'post']:
             dict_stats[f'WithoutAE-Post{i}'] = [np.nansum(np.abs(data_of_interest_prs - analog_ind[0][i]))/img_size,
                                     np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
-                                    np.nanmean(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
+                                    np.nanmean(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(analog_ind[2][i].data)[:10]]
             reconstruction_Post_Analog.append(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
@@ -888,7 +888,7 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'pre']:
             dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nansum(np.abs(data_of_interest_prs_encoded_pre - latent_analog_pre[0][i]))/img_size,
                                         np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
-                                        np.nanmean(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
+                                        np.nanmean(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                         str(latent_analog_pre[2][i].data)[:10]]
             reconstruction_Pre_AE.append(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
@@ -897,13 +897,13 @@ def runComparison(params: dict)-> tuple:
         if params["period"] in ['both', 'post']:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nansum(np.abs(data_of_interest_prs_encoded_ind - latent_analog_ind[0][i]))/img_size,
                                     np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
-                                    np.nanmean(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])-273.15,
+                                    np.nanmean(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(latent_analog_ind[2][i].data)[:10]]
             reconstruction_Post_AE.append(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nan, np.nan, np.nan]
 
-        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_temp[params["temp_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))-273.15]
+        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_temp[params["temp_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))]
         
         if params["verbose"]:
             print(f'Iteration {i} finished')
