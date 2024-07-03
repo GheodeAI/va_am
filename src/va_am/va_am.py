@@ -54,7 +54,7 @@ def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int
     y_size = size//x_size
     return (x_size, y_size) if x_size < y_size else (y_size, x_size)
 
-def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE: bool, with_cpu: bool, n_epochs: int, data_prs: Union[np.ndarray, list, xr.DataArray], file_save: str, verbose: bool, compile_params: dict = {}, fit_params : dict() = {}):
+def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE: bool, with_cpu: bool, n_epochs: int, data_pred: Union[np.ndarray, list, xr.DataArray], file_save: str, verbose: bool, compile_params: dict = {}, fit_params : dict() = {}):
     """
       runAE
        
@@ -74,7 +74,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
          Value that determines if the cpu should be used instead of (default) gpu.
       n_epochs: int 
          The number of epochs for the keras.model.                     
-      data_prs: np.ndarray
+      data_pred: np.ndarray
          Driver/predictor data (usually) to train the model.        
       file_save: str
          Where to save the .h5 model.
@@ -93,17 +93,17 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
     verbose = 1 if verbose else 0
     if with_cpu:
         with tf.device("/cpu:0"):
-            AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_prs)[-1],out_channels=np.shape(data_prs)[-1],VAE=use_VAE)
+            AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_pred)[-1],out_channels=np.shape(data_pred)[-1],VAE=use_VAE)
 
             AE.compile(**compile_params)
 
-            history = AE.fit(data_prs, data_prs, epochs=n_epochs, min_delta=1e-6, patience=50, verbose=verbose, **fit_params)
+            history = AE.fit(data_pred, data_pred, epochs=n_epochs, min_delta=1e-6, patience=50, verbose=verbose, **fit_params)
     else:
-        AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_prs)[-1],out_channels=np.shape(data_prs)[-1],VAE=use_VAE)
+        AE = AutoEncoders.AE_conv(input_dim=input_dim,latent_dim=latent_dim,arch=arch,in_channels=np.shape(data_pred)[-1],out_channels=np.shape(data_pred)[-1],VAE=use_VAE)
 
         AE.compile(**compile_params)
 
-        history = AE.fit(data_prs, data_prs, epochs=n_epochs, min_delta=1e-6, patience=50, verbose=verbose, **fit_params)
+        history = AE.fit(data_pred, data_pred, epochs=n_epochs, min_delta=1e-6, patience=50, verbose=verbose, **fit_params)
 
     Path("./figures").mkdir(parents=True, exist_ok=True)
     plt.plot(history.history['loss'],label='loss')
@@ -119,7 +119,7 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
     AE.decoder.save(file_save[:-3]+"_dec_"+file_save[-3:])
     return AE.encoder
 
-def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pre_indust_prs: Union[list, np.ndarray] = None, indust_prs: Union[list, np.ndarray] = None, data_of_interest_prs: Union[list, np.ndarray] = None, period : str = 'both') -> Union[np.ndarray, list]:
+def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pre_indust_pred: Union[list, np.ndarray] = None, indust_pred: Union[list, np.ndarray] = None, data_of_interest_pred: Union[list, np.ndarray] = None, period : str = 'both') -> Union[np.ndarray, list]:
     """
       get_AE_stats                                       
        
@@ -131,9 +131,9 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
          Booleans values that determines if the model should be VAE, if the cpu should be used instead gpu or if the, respectively.    
       AE_pre, AE_ind: keras.model
          Encoders keras.model for pre and post industrial period.                         
-      pre_indust_prs, indust_prs: list or np.ndarray
+      pre_indust_pred, indust_pred: list or np.ndarray
          Driver/predictor data of pre and post industrial period.                     
-      data_of_interes_prs:list or np.ndarray
+      data_of_interes_pred:list or np.ndarray
          Driver/predictor data of interest.    
       period: str
          Value that handle wich part of the data is used.                                   
@@ -147,53 +147,53 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
         with tf.device("/cpu:0"):
             if use_VAE:
                 if period == 'both':
-                    pre_indust_prs_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                    indust_prs_encoded = np.abs(AE_pre.predict(indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                    pre_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
-                    pre_indust_prs_encoded = np.abs(AE_ind.predict(pre_indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                    indust_prs_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                    ind_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
+                    pre_indust_pred_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                    indust_pred_encoded = np.abs(AE_pre.predict(indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                    pre_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
+                    pre_indust_pred_encoded = np.abs(AE_ind.predict(pre_indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                    indust_pred_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                    ind_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
                 elif period == 'pre':
-                    pre_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
+                    pre_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
                 else:
-                    ind_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
+                    ind_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
             else:
                 if period == 'both':
-                    pre_indust_prs_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                    indust_prs_encoded = np.abs(AE_pre.predict(indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                    pre_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
-                    pre_indust_prs_encoded = np.abs(AE_ind.predict(pre_indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                    indust_prs_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                    ind_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
+                    pre_indust_pred_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                    indust_pred_encoded = np.abs(AE_pre.predict(indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                    pre_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
+                    pre_indust_pred_encoded = np.abs(AE_ind.predict(pre_indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                    indust_pred_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                    ind_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
                 elif period == 'pre':
-                    pre_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
+                    pre_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
                 else:
-                    ind_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
+                    ind_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
     else:        
         if use_VAE:
             if period == 'both':
-                pre_indust_prs_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                indust_prs_encoded = np.abs(AE_pre.predict(indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                pre_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
-                pre_indust_prs_encoded = np.abs(AE_ind.predict(pre_indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                indust_prs_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                ind_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
+                pre_indust_pred_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                indust_pred_encoded = np.abs(AE_pre.predict(indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                pre_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
+                pre_indust_pred_encoded = np.abs(AE_ind.predict(pre_indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                indust_pred_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                ind_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
             elif period == 'pre':
-                pre_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
+                pre_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
             else:
-                ind_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
+                ind_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
         else:
             if period == 'both':
-                pre_indust_prs_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                indust_prs_encoded = np.abs(AE_pre.predict(indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
-                pre_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
-                pre_indust_prs_encoded = np.abs(AE_ind.predict(pre_indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                indust_prs_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
-                ind_encoded = np.concatenate((pre_indust_prs_encoded, indust_prs_encoded), axis=0)
+                pre_indust_pred_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                indust_pred_encoded = np.abs(AE_pre.predict(indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
+                pre_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
+                pre_indust_pred_encoded = np.abs(AE_ind.predict(pre_indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                indust_pred_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
+                ind_encoded = np.concatenate((pre_indust_pred_encoded, indust_pred_encoded), axis=0)
             elif period == 'pre':
-                pre_encoded = np.abs(AE_pre.predict(pre_indust_prs)-AE_pre.predict(data_of_interest_prs)).flatten()
+                pre_encoded = np.abs(AE_pre.predict(pre_indust_pred)-AE_pre.predict(data_of_interest_pred)).flatten()
             else:
-                ind_encoded = np.abs(AE_ind.predict(indust_prs)-AE_ind.predict(data_of_interest_prs)).flatten()
+                ind_encoded = np.abs(AE_ind.predict(indust_pred)-AE_ind.predict(data_of_interest_pred)).flatten()
     if period == 'both':
         res = np.concatenate((pre_encoded, ind_encoded), axis=0)
     elif period == 'pre':
@@ -203,7 +203,7 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
     return res
 
 
-def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
+def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_interest_pred: Union[list, np.ndarray], time_pred: xr.DataArray, data_target: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, target_var_name : str = 'air') -> tuple:
     """
       analogSearch                                       
        
@@ -215,13 +215,13 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
           The p-order of Minskowski distance to perform.
       k: int
           Number of near neighbours to search.            
-      data_prs: list or ndarray
+      data_pred: list or ndarray
           Driver/predictor data where to search.
-      data_of_interes_prs: list or ndarray
+      data_of_interes_pred: list or ndarray
           Driver/predictor data to be searched.
-      time_prs: DataArray
+      time_pred: DataArray
           Time DataArray corresponding to the driver/predictor data where is searching.
-      data_temp: Dataset
+      data_target: Dataset
           Temperature Dataset used to check the target value.
       enhanced_distance: bool
           Flag that decides if local proximity has to be performed or no.
@@ -235,7 +235,7 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
           Number used to perform the local proximity. Default 20.
       replace_choice: bool
           Flag that indicates if iter selected can be replaced.
-      temp_var_name: str
+      target_var_name: str
           The name of the temperature variable in case of working with different Dataset.
         
       Returns
@@ -243,37 +243,37 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
       : tuple
           A tuple containing selected driver/predictor and target.
     """
-    is_not_encoded = (len(np.shape(data_prs)) == 4)
+    is_not_encoded = (len(np.shape(data_pred)) == 4)
 
-    d_i_s = np.shape([data_of_interest_prs])
-    d_of_i = np.reshape([data_of_interest_prs], (d_i_s[0], int(np.size(data_of_interest_prs)/d_i_s[0])))
-    d_p_s = np.shape(data_prs)
-    d_p = np.reshape(data_prs, (d_p_s[0],int(np.size(data_prs)/d_p_s[0])))
+    d_i_s = np.shape([data_of_interest_pred])
+    d_of_i = np.reshape([data_of_interest_pred], (d_i_s[0], int(np.size(data_of_interest_pred)/d_i_s[0])))
+    d_p_s = np.shape(data_pred)
+    d_p = np.reshape(data_pred, (d_p_s[0],int(np.size(data_pred)/d_p_s[0])))
     dist = minkowski_distance(d_of_i, d_p, p=p)
 
     if enhanced_distance:
-        data_diff = np.abs(data_prs-data_of_interest_prs)
+        data_diff = np.abs(data_pred-data_of_interest_pred)
         d = np.zeros_like(data_diff)
         d[data_diff <= threshold] = -1
         ax_to_sum = np.arange(len(np.shape(data_diff)))[1:]
         dist += np.sum(d, axis=tuple(ax_to_sum)) + threshold_offset_counter
 
     minindex = dist.argsort()
-    time_prediction = time_prs[minindex[:k]]
-    prediction = data_temp.sel(time=time_prediction[:k])[temp_var_name].data
-    prsf = data_prs[minindex[:k]]
+    time_prediction = time_pred[minindex[:k]]
+    prediction = data_target.sel(time=time_prediction[:k])[target_var_name].data
+    predf = data_pred[minindex[:k]]
 
-    idx = np.random.choice(np.arange(prsf.shape[0]), size=iter, replace=replace_choice)
+    idx = np.random.choice(np.arange(predf.shape[0]), size=iter, replace=replace_choice)
     
-    selected_temp = prediction[idx,:,:]
+    selected_target = prediction[idx,:,:]
     #print(f'\nTime prediction: \n {np.shape(time_prediction)} \n {time_prediction}')
     selected_time = time_prediction[idx]
     if is_not_encoded:
-        selected_psr = prsf[idx,:,:,:]
+        selected_psr = predf[idx,:,:,:]
     else:
-        selected_psr = prsf[idx,:]
+        selected_psr = predf[idx,:]
 
-    return selected_psr, selected_temp, selected_time
+    return selected_psr, selected_target, selected_time
 
 def calculate_interest_region(interest_region: Union[list, np.ndarray], dims_list: int, resolution: Union[int, float, str] = 2, is_teleg: bool = False, secret_file:str = './secret.txt') -> list:
     """
@@ -436,37 +436,37 @@ def perform_preprocess(params: dict) -> tuple:
         warnings.warn(message, stacklevel=2)
 
     # Default values
-    if not "temp_dataset" in params:
-        params["temp_dataset"] = 'data/air.sig995.day.nc'
-    if not "prs_dataset" in params:
-        params["prs_dataset"] = 'data/prmsl.day.mean.nc'
+    if not "target_dataset" in params:
+        params["target_dataset"] = 'data/air.sig995.day.nc'
+    if not "pred_dataset" in params:
+        params["pred_dataset"] = 'data/prmsl.day.mean.nc'
 
     # Load data
-    temp=xr.load_dataset(params["temp_dataset"], engine='netcdf4')   #Temperatures 
-    prs=xr.load_dataset(params["prs_dataset"], engine='netcdf4')    #Atmospheric Pressure
+    target=xr.load_dataset(params["target_dataset"], engine='netcdf4')   #Temperatures 
+    pred=xr.load_dataset(params["pred_dataset"], engine='netcdf4')    #Atmospheric Pressure
     if params["verbose"]:
         print('Data loaded')
 
     # Attribute names
-    if not "temp_var_name" in params:
-        params["temp_var_name"] = list(temp.data_vars)[0]
-    if not "prs_var_name" in params:
-        params["prs_var_name"] = list(prs.data_vars)
+    if not "target_var_name" in params:
+        params["target_var_name"] = list(target.data_vars)[0]
+    if not "pred_var_name" in params:
+        params["pred_var_name"] = list(pred.data_vars)
         
-    print(np.shape(temp[params["temp_var_name"]].data))
+    print(np.shape(target[params["target_var_name"]].data))
 
-    if params["temp_var_name"] == "t2m_dailyMax":
-        params["pre_init"] = str(temp.time.data[0].astype('datetime64[D]'))
+    if params["target_var_name"] == "t2m_dailyMax":
+        params["pre_init"] = str(target.time.data[0].astype('datetime64[D]'))
     
     # Preprocess
     ## Change longitude coordinates from 0 - 359 to -180 - 179
-    if temp.longitude.min() == 0:
-        temp = temp.assign_coords(longitude=(((temp.longitude + 180) % 360) - 180))
-    temp = temp.sortby(temp.longitude)
-    temp = temp.sortby(temp.latitude)
-    prs = prs.assign_coords(longitude=(((prs.longitude + 180) % 360) - 180))
-    prs = prs.sortby(prs.longitude)
-    prs = prs.sortby(prs.latitude)
+    if target.longitude.min() == 0:
+        target = target.assign_coords(longitude=(((target.longitude + 180) % 360) - 180))
+    target = target.sortby(target.longitude)
+    target = target.sortby(target.latitude)
+    pred = pred.assign_coords(longitude=(((pred.longitude + 180) % 360) - 180))
+    pred = pred.sortby(pred.longitude)
+    pred = pred.sortby(pred.latitude)
     if params["verbose"]:
         print('Coord changed')
 
@@ -487,31 +487,31 @@ def perform_preprocess(params: dict) -> tuple:
         season_months = list(range(1, 13))
 
     ## Load Temperature
-    data_temp = temp.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
+    data_target = target.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     ### Pre-Industrial data
-    pre_indust_temp = None
+    pre_indust_target = None
     if params["period"] in ['both', 'pre']:
-        pre_indust_temp = data_temp.sel(time=slice(params["pre_init"],params["pre_end"]))
+        pre_indust_target = data_target.sel(time=slice(params["pre_init"],params["pre_end"]))
     ### Industrial (or Post-Industrial) data
     if params["period"] in ['both', 'post']:
-        indust_temp = data_temp.sel(time=slice(params["post_init"],params["post_end"]))
+        indust_target = data_target.sel(time=slice(params["post_init"],params["post_end"]))
     else:
-        indust_temp = data_temp.copy()
+        indust_target = data_target.copy()
 
     ## Load Driver/predictor
-    data_prs = prs.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
+    data_pred = pred.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     ### Pre-Industrial data
-    pre_indust_prs = None
+    pre_indust_pred = None
     if params["period"] in ['both', 'pre']:
-        pre_indust_prs = data_prs.sel(time=slice(params["pre_init"],params["pre_end"]))
+        pre_indust_pred = data_pred.sel(time=slice(params["pre_init"],params["pre_end"]))
     ### Industrial (or Post-Industrial) data
     if params["period"] in ['both', 'post']:
-        indust_prs = data_prs.sel(time=slice(params["post_init"],params["post_end"]))
+        indust_pred = data_pred.sel(time=slice(params["post_init"],params["post_end"]))
     else:
-        indust_prs = data_prs.copy()
+        indust_pred = data_pred.copy()
 
     ## Calculate image size
-    img_size = data_temp.dims.get('longitude')*data_temp.dims.get('latitude')
+    img_size = data_target.dims.get('longitude')*data_target.dims.get('latitude')
     
     if params["verbose"]:
         print('Data splited by epoch')
@@ -519,19 +519,19 @@ def perform_preprocess(params: dict) -> tuple:
     ## Mean over week
     if params["per_what"] == "per_week":
         if params["period"] in ['both', 'pre']:
-            pre_indust_temp = pre_indust_temp.resample(time="7D").mean()
-            pre_indust_prs = pre_indust_prs.resample(time="7D").mean()
+            pre_indust_target = pre_indust_target.resample(time="7D").mean()
+            pre_indust_pred = pre_indust_pred.resample(time="7D").mean()
         
-        indust_temp = indust_temp.resample(time="7D").mean()
-        indust_prs = indust_prs.resample(time="7D").mean()
+        indust_target = indust_target.resample(time="7D").mean()
+        indust_pred = indust_pred.resample(time="7D").mean()
     ## Mean over month
     if params["per_what"] == "per_month":
         if params["period"] in ['both', 'pre']:
-            pre_indust_temp = pre_indust_temp.resample(time="MS", closed="left", label="left").mean()
-            pre_indust_prs = pre_indust_prs.resample(time="MS", closed="left", label="left").mean()
+            pre_indust_target = pre_indust_target.resample(time="MS", closed="left", label="left").mean()
+            pre_indust_pred = pre_indust_pred.resample(time="MS", closed="left", label="left").mean()
         
-        indust_temp = indust_temp.resample(time="MS", closed="left", label="left").mean()
-        indust_prs = indust_prs.resample(time="MS", closed="left", label="left").mean()
+        indust_target = indust_target.resample(time="MS", closed="left", label="left").mean()
+        indust_pred = indust_pred.resample(time="MS", closed="left", label="left").mean()
     elif params["per_what"] != "per_day":
         message = ValueError(f'Per what? What is {params["pre_what"]} supposed to be? For now I only understand per_week and per_day')
         if is_teleg:
@@ -539,23 +539,23 @@ def perform_preprocess(params: dict) -> tuple:
             requests.get(url).json()
         raise message
         
-    data_of_interest_temp = indust_temp.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
-    data_of_interest_prs = indust_prs.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+    data_of_interest_target = indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+    data_of_interest_pred = indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     
     if params["remove_year"]:
-        indust_temp = indust_temp.drop_sel(time=(indust_temp.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
-        indust_prs = indust_prs.drop_sel(time=(indust_prs.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
+        indust_target = indust_target.drop_sel(time=(indust_target.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
+        indust_pred = indust_pred.drop_sel(time=(indust_pred.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
         if params["period"] == 'pre':
             if datetime.datetime.strptime(params["data_of_interest_init"], "%Y-%m-%d") < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
-                pre_indust_temp = pre_indust_temp.drop_sel(time=(pre_indust_temp.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
-                pre_indust_prs = pre_indust_prs.drop_sel(time=(pre_indust_prs.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))        
+                pre_indust_target = pre_indust_target.drop_sel(time=(pre_indust_target.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
+                pre_indust_pred = pre_indust_pred.drop_sel(time=(pre_indust_pred.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))        
     else:
-        indust_temp = indust_temp.drop_sel(time=(indust_temp.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
-        indust_prs = indust_prs.drop_sel(time=(indust_prs.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
+        indust_target = indust_target.drop_sel(time=(indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
+        indust_pred = indust_pred.drop_sel(time=(indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
         if params["period"] == 'pre':
             if datetime.datetime.strptime(params["data_of_interest_init"], "%Y-%m-%d") < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
-                pre_indust_temp = pre_indust_temp.drop_sel(time=(pre_indust_temp.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
-                pre_indust_prs = pre_indust_prs.drop_sel(time=(pre_indust_prs.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
+                pre_indust_target = pre_indust_target.drop_sel(time=(pre_indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
+                pre_indust_pred = pre_indust_pred.drop_sel(time=(pre_indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
     
 
     if params["verbose"]:
@@ -563,105 +563,105 @@ def perform_preprocess(params: dict) -> tuple:
 
     ## Season split
     if params["period"] in ['both', 'pre']:
-        pre_indust_temp = pre_indust_temp.sel(time=pre_indust_temp.time.dt.month.isin(season_months))
-        pre_indust_prs = pre_indust_prs.sel(time=pre_indust_prs.time.dt.month.isin(season_months))
+        pre_indust_target = pre_indust_target.sel(time=pre_indust_target.time.dt.month.isin(season_months))
+        pre_indust_pred = pre_indust_pred.sel(time=pre_indust_pred.time.dt.month.isin(season_months))
 
-    indust_temp = indust_temp.sel(time=indust_temp.time.dt.month.isin(season_months))
-    indust_prs = indust_prs.sel(time=indust_prs.time.dt.month.isin(season_months))
+    indust_target = indust_target.sel(time=indust_target.time.dt.month.isin(season_months))
+    indust_pred = indust_pred.sel(time=indust_pred.time.dt.month.isin(season_months))
 
     if params["verbose"]:
         print('Season split')
 
     # Train/Test split & normalization
     ## Train/test split for driver/predictor
-    x_train_pre_prs = None
-    x_test_pre_prs = None
+    x_train_pre_pred = None
+    x_test_pre_pred = None
     if params["period"] in ['both', 'pre']:
-        x_train_pre_prs = pre_indust_prs.isel(time=slice(0,int(pre_indust_prs.dims.get('time')*0.75)))
-        x_test_pre_prs = pre_indust_prs.isel(time=slice(int(pre_indust_prs.dims.get('time')*0.75), int(pre_indust_prs.dims.get('time'))))
+        x_train_pre_pred = pre_indust_pred.isel(time=slice(0,int(pre_indust_pred.dims.get('time')*0.75)))
+        x_test_pre_pred = pre_indust_pred.isel(time=slice(int(pre_indust_pred.dims.get('time')*0.75), int(pre_indust_pred.dims.get('time'))))
 
-    x_train_ind_prs = indust_prs.isel(time=slice(0,int(indust_prs.dims.get('time')*0.75)))
-    x_test_ind_prs = indust_prs.isel(time=slice(int(indust_prs.dims.get('time')*0.75), indust_prs.dims.get('time')))
+    x_train_ind_pred = indust_pred.isel(time=slice(0,int(indust_pred.dims.get('time')*0.75)))
+    x_test_ind_pred = indust_pred.isel(time=slice(int(indust_pred.dims.get('time')*0.75), indust_pred.dims.get('time')))
 
     ## Get labels for time
-    time_pre_indust_prs = None
+    time_pre_indust_pred = None
     if params["period"] in ['both', 'pre']:
-        time_pre_indust_prs = pre_indust_prs.time
-    time_indust_prs = indust_prs.time
+        time_pre_indust_pred = pre_indust_pred.time
+    time_indust_pred = indust_pred.time
 
     if params["verbose"]:
         print('Train/Test split')
     
     ## Normalization
     if params["period"] in ['both', 'pre']:
-        x_train_pre_norm_prs = x_train_pre_prs.copy()
-        x_test_pre_norm_prs = x_test_pre_prs.copy()
-        pre_indust_norm_prs = pre_indust_prs.copy()
-    x_train_ind_norm_prs = x_train_ind_prs.copy()
-    x_test_ind_norm_prs = x_test_ind_prs.copy()
-    data_of_interest_norm_prs = data_of_interest_prs.copy()
-    indust_norm_prs = indust_prs.copy()
-    for prs_var in params["prs_var_name"]:
+        x_train_pre_norm_pred = x_train_pre_pred.copy()
+        x_test_pre_norm_pred = x_test_pre_pred.copy()
+        pre_indust_norm_pred = pre_indust_pred.copy()
+    x_train_ind_norm_pred = x_train_ind_pred.copy()
+    x_test_ind_norm_pred = x_test_ind_pred.copy()
+    data_of_interest_norm_pred = data_of_interest_pred.copy()
+    indust_norm_pred = indust_pred.copy()
+    for pred_var in params["pred_var_name"]:
 
         if params["period"] == 'both':
-            min_scale_prs = np.min(np.array([x_train_ind_prs[prs_var].min(), x_train_pre_prs[prs_var].min()]))
-            norm_scale_prs = np.max(np.array([x_train_ind_prs[prs_var].max(), x_train_pre_prs[prs_var].max()])) - min_scale_prs
+            min_scale_pred = np.min(np.array([x_train_ind_pred[pred_var].min(), x_train_pre_pred[pred_var].min()]))
+            norm_scale_pred = np.max(np.array([x_train_ind_pred[pred_var].max(), x_train_pre_pred[pred_var].max()])) - min_scale_pred
         elif params["period"] == 'post':
-            min_scale_prs = np.min(np.array([x_train_ind_prs[prs_var].min()]))
-            norm_scale_prs = np.max(np.array([x_train_ind_prs[prs_var].max()])) - min_scale_prs
+            min_scale_pred = np.min(np.array([x_train_ind_pred[pred_var].min()]))
+            norm_scale_pred = np.max(np.array([x_train_ind_pred[pred_var].max()])) - min_scale_pred
         else:
-            min_scale_prs = np.min(np.array([x_train_pre_prs[prs_var].min()]))
-            norm_scale_prs = np.max(np.array([x_train_pre_prs[prs_var].max()])) - min_scale_prs
+            min_scale_pred = np.min(np.array([x_train_pre_pred[pred_var].min()]))
+            norm_scale_pred = np.max(np.array([x_train_pre_pred[pred_var].max()])) - min_scale_pred
 
         if params["period"] in ['both', 'pre']:
-            x_train_pre_norm_prs[prs_var].data = (x_train_pre_prs[prs_var].data - min_scale_prs) / norm_scale_prs
-            x_test_pre_norm_prs[prs_var].data = (x_test_pre_prs[prs_var].data - min_scale_prs) / norm_scale_prs
-            pre_indust_norm_prs[prs_var].data = (pre_indust_prs[prs_var].data - min_scale_prs) / norm_scale_prs    
+            x_train_pre_norm_pred[pred_var].data = (x_train_pre_pred[pred_var].data - min_scale_pred) / norm_scale_pred
+            x_test_pre_norm_pred[pred_var].data = (x_test_pre_pred[pred_var].data - min_scale_pred) / norm_scale_pred
+            pre_indust_norm_pred[pred_var].data = (pre_indust_pred[pred_var].data - min_scale_pred) / norm_scale_pred    
         
-        x_train_ind_norm_prs[prs_var].data = (x_train_ind_prs[prs_var].data - min_scale_prs) / norm_scale_prs
-        x_test_ind_norm_prs[prs_var].data = (x_test_ind_prs[prs_var].data - min_scale_prs) / norm_scale_prs
-        data_of_interest_norm_prs[prs_var].data = (data_of_interest_prs[prs_var].data - min_scale_prs) / norm_scale_prs
-        indust_norm_prs[prs_var].data = (indust_prs[prs_var].data - min_scale_prs) / norm_scale_prs
+        x_train_ind_norm_pred[pred_var].data = (x_train_ind_pred[pred_var].data - min_scale_pred) / norm_scale_pred
+        x_test_ind_norm_pred[pred_var].data = (x_test_ind_pred[pred_var].data - min_scale_pred) / norm_scale_pred
+        data_of_interest_norm_pred[pred_var].data = (data_of_interest_pred[pred_var].data - min_scale_pred) / norm_scale_pred
+        indust_norm_pred[pred_var].data = (indust_pred[pred_var].data - min_scale_pred) / norm_scale_pred
 
     if params["verbose"]:
         print('Normalization')
 
     ## Reshape
     if params["period"] in ['both', 'pre']:
-        x_train_pre_prs = x_train_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
-        x_test_pre_prs = x_test_pre_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
-        pre_indust_prs = pre_indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
-    x_train_ind_prs = x_train_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
-    x_test_ind_prs = x_test_ind_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
-    data_of_interest_prs = data_of_interest_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
-    indust_prs = indust_norm_prs.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+        x_train_pre_pred = x_train_pre_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+        x_test_pre_pred = x_test_pre_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+        pre_indust_pred = pre_indust_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    x_train_ind_pred = x_train_ind_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    x_test_ind_pred = x_test_ind_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    data_of_interest_pred = data_of_interest_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
+    indust_pred = indust_norm_pred.to_array().transpose("time", "latitude", "longitude", "variable").to_numpy()
 
     if params["arch"]==8:
         if params["period"] in ['both', 'pre']:
-            x_train_pre_prs = np.mean(x_train_pre_prs, axis=3)
-            x_test_pre_prs = np.mean(x_test_pre_prs, axis=3)
-            pre_indust_prs = np.mean(pre_indust_prs, axis=3)
-        x_train_ind_prs = np.mean(x_train_ind_prs, axis=3)
-        x_test_ind_prs = np.mean(x_test_ind_prs, axis=3)
-        data_of_interest_prs = np.mean(data_of_interest_prs, axis=3)
-        indust_prs = np.mean(indust_prs, axis=3)
+            x_train_pre_pred = np.mean(x_train_pre_pred, axis=3)
+            x_test_pre_pred = np.mean(x_test_pre_pred, axis=3)
+            pre_indust_pred = np.mean(pre_indust_pred, axis=3)
+        x_train_ind_pred = np.mean(x_train_ind_pred, axis=3)
+        x_test_ind_pred = np.mean(x_test_ind_pred, axis=3)
+        data_of_interest_pred = np.mean(data_of_interest_pred, axis=3)
+        indust_pred = np.mean(indust_pred, axis=3)
     d_return = {
         "params": params,
         "img_size": img_size,
-        "data_prs": data_prs,
-        "data_temp": data_temp,
-        "time_pre_indust_prs": time_pre_indust_prs,
-        "time_indust_prs": time_indust_prs,
-        "data_of_interest_prs": data_of_interest_prs,
-        "data_of_interest_temp": data_of_interest_temp,
-        "x_train_pre_prs": x_train_pre_prs,
-        "x_train_ind_prs": x_train_ind_prs,
-        "x_test_pre_prs": x_test_pre_prs,
-        "x_test_ind_prs": x_test_ind_prs,
-        "pre_indust_prs": pre_indust_prs,
-        "pre_indust_temp": pre_indust_temp,
-        "indust_prs": indust_prs,
-        "indust_temp": indust_temp
+        "data_pred": data_pred,
+        "data_target": data_target,
+        "time_pre_indust_pred": time_pre_indust_pred,
+        "time_indust_pred": time_indust_pred,
+        "data_of_interest_pred": data_of_interest_pred,
+        "data_of_interest_target": data_of_interest_target,
+        "x_train_pre_pred": x_train_pre_pred,
+        "x_train_ind_pred": x_train_ind_pred,
+        "x_test_pre_pred": x_test_pre_pred,
+        "x_test_ind_pred": x_test_ind_pred,
+        "pre_indust_pred": pre_indust_pred,
+        "pre_indust_target": pre_indust_target,
+        "indust_pred": indust_pred,
+        "indust_target": indust_target
     }
 
     if not "out_preprocess" in params.keys():
@@ -670,7 +670,7 @@ def perform_preprocess(params: dict) -> tuple:
     if params["out_preprocess"] != "all":
         return tuple(map(d_return.get, params["out_preprocess"]))
     else:
-        return params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp
+        return params, img_size, data_pred, data_target, time_pre_indust_pred, time_indust_pred, data_of_interest_pred, data_of_interest_target, x_train_pre_pred, x_train_ind_pred, x_test_pre_pred, x_test_ind_pred, pre_indust_pred, pre_indust_target, indust_pred, indust_target
     
     
 
@@ -702,17 +702,17 @@ def runComparison(params: dict)-> tuple:
                 chat_id = f.readline().strip()
                 user_name = f.readline().strip()
             f.close()
-    params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params)
+    params, img_size, data_pred, data_target, time_pre_indust_pred, time_indust_pred, data_of_interest_pred, data_of_interest_target, x_train_pre_pred, x_train_ind_pred, x_test_pre_pred, x_test_ind_pred, pre_indust_pred, pre_indust_target, indust_pred, indust_target = perform_preprocess(params)
 
     if params["verbose"]:
         print('Reshape')
-        print(np.shape(data_of_interest_prs))
-        print(np.shape(data_of_interest_temp[params["temp_var_name"]].data))
+        print(np.shape(data_of_interest_pred))
+        print(np.shape(data_of_interest_target[params["target_var_name"]].data))
         if params["period"] in ['both', 'pre']:
-            print(np.shape(pre_indust_prs))
-            print(np.shape(pre_indust_temp[params["temp_var_name"]].data))
-        print(np.shape(indust_prs))
-        print(np.shape(indust_temp[params["temp_var_name"]].data))
+            print(np.shape(pre_indust_pred))
+            print(np.shape(pre_indust_target[params["target_var_name"]].data))
+        print(np.shape(indust_pred))
+        print(np.shape(indust_target[params["target_var_name"]].data))
 
     # AutoEncoder
     if not "compile_params" in params.keys():
@@ -730,30 +730,30 @@ def runComparison(params: dict)-> tuple:
         if params["verbose"]:
             print('Start fitting post')
         if "kl_factor" in params.keys():
-            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude'),params["kl_factor"]]
+            input_dim = [data_pred.dims.get('latitude'),data_pred.dims.get('longitude'),params["kl_factor"]]
         elif "cvae_params" in params.keys():
-            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')] + params["cvae_params"]
+            input_dim = [data_pred.dims.get('latitude'),data_pred.dims.get('longitude')] + params["cvae_params"]
         else:
-            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
+            input_dim = [data_pred.dims.get('latitude'),data_pred.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
             AE_pre = keras.models.load_model(params["file_AE_pre"], custom_objects={'keras': keras,'AutoEncoders': AutoEncoders})
         if params["period"] in ['both', 'post']:
-            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"], params["compile_params"], params["fit_params"])
+            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_pred, params["file_AE_post"], params["verbose"], params["compile_params"], params["fit_params"])
         if params["verbose"]:
             print('Fitting finished for post & AE loaded for pre')
     else:
         if params["verbose"]:
             print('Start fitting')
         if "kl_factor" in params.keys():
-            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude'),params["kl_factor"]]
+            input_dim = [data_pred.dims.get('latitude'),data_pred.dims.get('longitude'),params["kl_factor"]]
         elif "cvae_params" in params.keys():
-            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')] + params["cvae_params"]
+            input_dim = [data_pred.dims.get('latitude'),data_pred.dims.get('longitude')] + params["cvae_params"]
         else:
-            input_dim = [data_prs.dims.get('latitude'),data_prs.dims.get('longitude')]
+            input_dim = [data_pred.dims.get('latitude'),data_pred.dims.get('longitude')]
         if params["period"] in ['both', 'pre']:
-            AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_pre_prs, params["file_AE_pre"], params["verbose"], params["compile_params"], params["fit_params"])
+            AE_pre = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_pre_pred, params["file_AE_pre"], params["verbose"], params["compile_params"], params["fit_params"])
         if params["period"] in ['both', 'post']:
-            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_prs, params["file_AE_post"], params["verbose"], params["compile_params"], params["fit_params"])
+            AE_ind = runAE(input_dim, params["latent_dim"], params["arch"], params["use_VAE"], params["with_cpu"], params["n_epochs"], x_train_ind_pred, params["file_AE_post"], params["verbose"], params["compile_params"], params["fit_params"])
         if params["verbose"]:
             print('Fitting finished')
     
@@ -761,11 +761,11 @@ def runComparison(params: dict)-> tuple:
     ## Stats analog
     if params["enhanced_distance"]:
         if params["period"] == 'both':
-            stat_data = np.concatenate(((x_train_ind_prs-data_of_interest_prs).flatten(),(x_train_pre_prs-data_of_interest_prs).flatten()),axis=0)
+            stat_data = np.concatenate(((x_train_ind_pred-data_of_interest_pred).flatten(),(x_train_pre_pred-data_of_interest_pred).flatten()),axis=0)
         elif params["period"] == 'pre':
-            stat_data = (x_train_pre_prs_prs-data_of_interest_prs).flatten()
+            stat_data = (x_train_pre_pred_pred-data_of_interest_pred).flatten()
         else:
-            stat_data = (x_train_ind_prs-data_of_interest_prs).flatten()
+            stat_data = (x_train_ind_pred-data_of_interest_pred).flatten()
         stat_mean = np.abs(stat_data).mean()
         stat_std = np.abs(stat_data).std()
         stat_max = np.abs(stat_data).max()
@@ -780,11 +780,11 @@ def runComparison(params: dict)-> tuple:
     ## Stats AE
     if params["enhanced_distance"]:
         if params["period"] == 'both':
-            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_prs, x_train_ind_prs, data_of_interest_prs)
+            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_pred, x_train_ind_pred, data_of_interest_pred)
         elif params["period"] == 'pre':
-            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=x_train_pre_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_pred=x_train_pre_pred, data_of_interest_pred=data_of_interest_pred, period=params["period"])
         else:
-            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=x_train_ind_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_pred=x_train_ind_pred, data_of_interest_pred=data_of_interest_pred, period=params["period"])
         print(f'Mean: {encoded.mean()}')
         print(f'Std: {encoded.std()}')
         print(f'Max AE: {encoded.max()}')
@@ -797,7 +797,7 @@ def runComparison(params: dict)-> tuple:
     int_reg = params["interest_region"]
     if params["interest_region_type"] == "coord":
         if params["resolution"] == 'auto':
-            int_reg = calculate_interest_region(params["interest_region"], (data_temp.latitude.data, data_temp.longitude.data), params["resolution"], is_teleg, params["secret_file"])
+            int_reg = calculate_interest_region(params["interest_region"], (data_target.latitude.data, data_target.longitude.data), params["resolution"], is_teleg, params["secret_file"])
         else:
             int_reg = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], is_teleg, params["secret_file"])
 
@@ -815,26 +815,26 @@ def runComparison(params: dict)-> tuple:
     if params["with_cpu"]:
         with tf.device("/cpu:0"):
             if params["period"] in ['both', 'pre']:
-                pre_indust_prs_encoded = AE_pre.predict(pre_indust_prs)
-                data_of_interest_prs_encoded_pre = AE_pre.predict(data_of_interest_prs)
+                pre_indust_pred_encoded = AE_pre.predict(pre_indust_pred)
+                data_of_interest_pred_encoded_pre = AE_pre.predict(data_of_interest_pred)
             if params["period"] in ['both', 'post']:
-                indust_prs_encoded = AE_ind.predict(indust_prs)
-                data_of_interest_prs_encoded_ind = AE_ind.predict(data_of_interest_prs)
+                indust_pred_encoded = AE_ind.predict(indust_pred)
+                data_of_interest_pred_encoded_ind = AE_ind.predict(data_of_interest_pred)
     else:
         if params["period"] in ['both', 'pre']:
-            pre_indust_prs_encoded = AE_pre.predict(pre_indust_prs)
-            data_of_interest_prs_encoded_pre = AE_pre.predict(data_of_interest_prs)
+            pre_indust_pred_encoded = AE_pre.predict(pre_indust_pred)
+            data_of_interest_pred_encoded_pre = AE_pre.predict(data_of_interest_pred)
         if params["period"] in ['both', 'post']:
-            indust_prs_encoded = AE_ind.predict(indust_prs)
-            data_of_interest_prs_encoded_ind = AE_ind.predict(data_of_interest_prs)
+            indust_pred_encoded = AE_ind.predict(indust_pred)
+            data_of_interest_pred_encoded_ind = AE_ind.predict(data_of_interest_pred)
 
     if params["verbose"]:
         print('Starting iterations')    
         ax = plt.subplot(1, 1, 1)
         if params["period"] in ['both', 'post']:
-            plt.imshow(data_of_interest_prs_encoded_ind.reshape(square_dims(params["latent_dim"])))
+            plt.imshow(data_of_interest_pred_encoded_ind.reshape(square_dims(params["latent_dim"])))
         else:
-            plt.imshow(data_of_interest_prs_encoded_pre.reshape(square_dims(params["latent_dim"])))
+            plt.imshow(data_of_interest_pred_encoded_pre.reshape(square_dims(params["latent_dim"])))
         plt.colorbar()
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
@@ -845,21 +845,21 @@ def runComparison(params: dict)-> tuple:
 
     # Analog Pre
     if params["period"] in ['both', 'pre']:
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
 
     # Analog Post
     if params["period"] in ['both', 'post']:
-        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        analog_ind = analogSearch(params["p"], params["k"], indust_pred, data_of_interest_pred, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
     
 
     # AE Pre
     if params["period"] in ['both', 'pre']:
-        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred_encoded, data_of_interest_pred_encoded_pre, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
     
 
     # AE Post
     if params["period"] in ['both', 'post']:
-        latent_analog_ind = analogSearch(params["p"], params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        latent_analog_ind = analogSearch(params["p"], params["k"], indust_pred_encoded, data_of_interest_pred_encoded_ind, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
     
     dict_stats = {}
     reconstruction_Pre_Analog = []
@@ -868,8 +868,8 @@ def runComparison(params: dict)-> tuple:
     reconstruction_Post_AE = []
     for i in range(params["iter"]):
         if params["period"] in ['both', 'pre']:
-            dict_stats[f'WithoutAE-Pre{i}'] = [np.nansum(np.abs(data_of_interest_prs - analog_pre[0][i]))/img_size,
-                                    np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+            dict_stats[f'WithoutAE-Pre{i}'] = [np.nansum(np.abs(data_of_interest_pred - analog_pre[0][i]))/img_size,
+                                    np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     np.nanmean(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(analog_pre[2][i].data)[:10]]
             reconstruction_Pre_Analog.append(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
@@ -877,8 +877,8 @@ def runComparison(params: dict)-> tuple:
             dict_stats[f'WithoutAE-Pre{i}'] = [np.nan, np.nan, np.nan]
         
         if params["period"] in ['both', 'post']:
-            dict_stats[f'WithoutAE-Post{i}'] = [np.nansum(np.abs(data_of_interest_prs - analog_ind[0][i]))/img_size,
-                                    np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+            dict_stats[f'WithoutAE-Post{i}'] = [np.nansum(np.abs(data_of_interest_pred - analog_ind[0][i]))/img_size,
+                                    np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     np.nanmean(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(analog_ind[2][i].data)[:10]]
             reconstruction_Post_Analog.append(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
@@ -886,8 +886,8 @@ def runComparison(params: dict)-> tuple:
             dict_stats[f'WithoutAE-Post{i}'] = [np.nan, np.nan, np.nan]
         
         if params["period"] in ['both', 'pre']:
-            dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nansum(np.abs(data_of_interest_prs_encoded_pre - latent_analog_pre[0][i]))/img_size,
-                                        np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+            dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nansum(np.abs(data_of_interest_pred_encoded_pre - latent_analog_pre[0][i]))/img_size,
+                                        np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                         np.nanmean(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                         str(latent_analog_pre[2][i].data)[:10]]
             reconstruction_Pre_AE.append(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
@@ -895,15 +895,15 @@ def runComparison(params: dict)-> tuple:
             dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nan, np.nan, np.nan]
 
         if params["period"] in ['both', 'post']:
-            dict_stats[f'WithAE-Post-Post{i}'] = [np.nansum(np.abs(data_of_interest_prs_encoded_ind - latent_analog_ind[0][i]))/img_size,
-                                    np.nanmean(np.abs(data_of_interest_temp[params["temp_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+            dict_stats[f'WithAE-Post-Post{i}'] = [np.nansum(np.abs(data_of_interest_pred_encoded_ind - latent_analog_ind[0][i]))/img_size,
+                                    np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     np.nanmean(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(latent_analog_ind[2][i].data)[:10]]
             reconstruction_Post_AE.append(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nan, np.nan, np.nan]
 
-        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_temp[params["temp_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))]
+        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_target[params["target_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))]
         
         if params["verbose"]:
             print(f'Iteration {i} finished')
@@ -935,33 +935,33 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         params["ident_dataset"] = 'data/data_dailyMax_t2m_1940-2022.nc'
     if not "ident_var_name" in params:
         params["ident_var_name"] = 't2m_dailyMax'
-    data_temp=xr.load_dataset(params["ident_dataset"], engine='netcdf4') #Temperatures
+    data_target=xr.load_dataset(params["ident_dataset"], engine='netcdf4') #Temperatures
     if params["verbose"]:
         print('Data loaded')
 
     # Preprocess
     ## Change longitude coordinates from 0 - 359 to -180 - 179
-    if data_temp.longitude.min() == 0:
-        data_temp = data_temp.assign_coords(longitude=(((data_temp.longitude + 180) % 360) - 180))
-    data_temp = data_temp.sortby(data_temp.longitude)
-    data_temp = data_temp.sortby(data_temp.latitude)
+    if data_target.longitude.min() == 0:
+        data_target = data_target.assign_coords(longitude=(((data_target.longitude + 180) % 360) - 180))
+    data_target = data_target.sortby(data_target.longitude)
+    data_target = data_target.sortby(data_target.latitude)
     if params["verbose"]:
         print('Coord changed')
 
     ## Load Temperature
-    data_temp = data_temp.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
+    data_target = data_target.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     
-    time_x = data_temp.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"])).get_index('time')
+    time_x = data_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"])).get_index('time')
 
     ## Extract interest data
     idx_interest = params["interest_region"]
     if params["interest_region_type"] == "coord":
         if params["resolution"] == 'auto':
-            idx_interest = calculate_interest_region(params["interest_region"], (data_temp.latitude.data, data_temp.longitude.data), params["resolution"], params["teleg"], params["secret_file"])
+            idx_interest = calculate_interest_region(params["interest_region"], (data_target.latitude.data, data_target.longitude.data), params["resolution"], params["teleg"], params["secret_file"])
         else:
             idx_interest = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], params["teleg"], params["secret_file"])
-    data_temp = data_temp.isel(latitude=slice(idx_interest[0], idx_interest[1]),longitude=slice(idx_interest[2], idx_interest[3]))
-    data_temp = data_temp.mean(dim=['latitude', 'longitude'])
+    data_target = data_target.isel(latitude=slice(idx_interest[0], idx_interest[1]),longitude=slice(idx_interest[2], idx_interest[3]))
+    data_target = data_target.mean(dim=['latitude', 'longitude'])
     
     
     ## Percentil
@@ -970,23 +970,23 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         which_percentile = params["percentile"]
     
 
-    percentile_threshold = functions.hw_pctl(data_temp[params["ident_var_name"]], ['1981', '2010'], which_percentile)
-    data_temp = data_temp.sel(time=slice(params["data_of_interest_init"], params["data_of_interest_end"]))
+    percentile_threshold = functions.hw_pctl(data_target[params["ident_var_name"]], ['1981', '2010'], which_percentile, params["ident_var_name"])
+    data_target = data_target.sel(time=slice(params["data_of_interest_init"], params["data_of_interest_end"]))
     percentile_threshold = percentile_threshold.sel(dayofyear=slice(time_x[0].day_of_year, time_x[-1].day_of_year))
-    surpass_threshold = functions.isHW_in_ds(data_temp, percentile_threshold).isHW.data
+    surpass_threshold = functions.isHW_in_ds(data_target, percentile_threshold, params["ident_var_name"]).isHW.data
     amount_surpass_threshold = ((surpass_threshold).astype(np.int8)).sum()
-    data_temp_array = data_temp[params["ident_var_name"]].data
+    data_target_array = data_target[params["ident_var_name"]].data
     percentile_threshold_array = percentile_threshold.pctl_th.data
     
     plt.figure()
-    plt.plot(time_x, (data_temp_array - 273.15), marker='o', label='Days studied')
+    plt.plot(time_x, (data_target_array - 273.15), marker='o', label='Days studied')
     plt.xticks(rotation=45)
     plt.plot(time_x, (percentile_threshold_array - 273.15), color='r', label=f'p{which_percentile} threshold')
     if params["verbose"]:
         print(f'Threshold: {percentile_threshold_array - 273.15}')
         print(f'Amount of days that surpass the threshold: {amount_surpass_threshold}' )
 
-    if amount_surpass_threshold == len(data_temp_array):
+    if amount_surpass_threshold == len(data_target_array):
         heatwave_period = time_x#.astype('datetime64[D]')
     elif amount_surpass_threshold == 0:
         heatwave_period = []
