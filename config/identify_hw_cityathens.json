@@ -29,10 +29,10 @@
     "replace_choice":           true,
     "arch":                     5,
     "verbose":                  true,
-    "temp_dataset": 		"~/Documentos/GitHub/va_am/data/data_dailyMax_t2m_1940-2022.nc",
-    "prs_dataset": 		"~/Documentos/GitHub/va_am/data/prmsl.day.mean.nc",
+    "target_dataset": 		"~/Documentos/GitHub/va_am/data/data_dailyMax_t2m_1940-2022.nc",
+    "pred_dataset": 		"~/Documentos/GitHub/va_am/data/prmsl.day.mean.nc",
     "ident_dataset": 		"~/Documentos/GitHub/va_am/data/data_dailyMax_t2m_1940-2022.nc",
-    "temp_var_name": 		"t2m_dailyMax",
+    "target_var_name": 		"t2m_dailyMax",
     "p":			2,
     "enhanced_distance":	true
 }
