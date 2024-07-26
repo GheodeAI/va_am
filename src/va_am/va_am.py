@@ -28,6 +28,7 @@ import traceback
 import sympy
 from scipy.spatial import minkowski_distance
 from pathlib import Path
+import glob
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
@@ -1012,11 +1013,27 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
 
     return heatwave_period
 
-def post_process(params_file: str, save_stats:bool):
+def post_process(params_file: str, save_stats: bool, is_atribution: bool = False, compare_to_am: bool = True, target_stat: str = "max"):
     # Read params
-
+    file_params = open(params_file)
+    params = json.load(file_params)
+    file_params.close()
     # Perform post-process
+    path = f'./comparison-csv/*{params["name"]}*{params["latent_dim"]}*arch{params["arch"]}*'
+    files_interest = glob.glob(path)
+    files_interest = sorted(files_interest)
+    list_interest = [pd.read_csv(df) for df in files_interest]
     ## Obtain stats
+    tar_fun = getattr(np, target_stat)
+    target = tar_fun([elem.get('temp')[4::5] for elem in list_interest])
+    analog_Pre = np.array([elem.get('temp')[0::5] for elem in list_interest]).flatten()
+    analog_Pre_prsdiff = np.array([elem.get('prs-diff')[0::5] for elem in list_interest]).flatten()
+    analog_Ind = np.array([elem.get('temp')[1::5] for elem in list_interest]).flatten()
+    analog_Ind_prsdiff = np.array([elem.get('prs-diff')[1::5] for elem in list_interest]).flatten()
+    AE_Pre = np.array([elem.get('temp')[2::5] for elem in list_interest]).flatten()
+    AE_Pre_prsdiff = np.array([elem.get('prs-diff')[2::5] for elem in list_interest]).flatten()
+    AE_Ind = np.array([elem.get('temp')[3::5] for elem in list_interest]).flatten()
+    AE_Ind_prsdiff = np.array([elem.get('prs-diff')[3::5] for elem in list_interest]).flatten()
     ## Make plot
     ## Save plot
     # if save_stats save stats
