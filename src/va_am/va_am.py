@@ -1013,11 +1013,21 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
 
     return heatwave_period
 
+def get_post_information(params: dict):
+    data_pred = xr.open_dataset(params["prs_dataset"])
+    is_Mv = "Mv" if len(data_pred.data_vars) > 1 else ""
+    data_target = xr.open_dataset(params["temp_dataset"])
+    var_name = list(data_target.data_vars)[0]
+    target_var = rf'{data[var_name].attrs["long_name"]} {data[var_name].attrs["units"]}'
+    return is_Mv, target_var
+
 def post_process(params_file: str, save_stats: bool, is_atribution: bool = False, compare_to_am: bool = True, target_stat: str = "max"):
     # Read params
     file_params = open(params_file)
     params = json.load(file_params)
     file_params.close()
+    # Datasets information
+    is_Mv, target_var = get_post_information(params)
     # Perform post-process
     path = f'./comparison-csv/*{params["name"]}*{params["latent_dim"]}*arch{params["arch"]}*'
     files_interest = glob.glob(path)
@@ -1034,11 +1044,51 @@ def post_process(params_file: str, save_stats: bool, is_atribution: bool = False
     AE_Pre_prsdiff = np.array([elem.get('prs-diff')[2::5] for elem in list_interest]).flatten()
     AE_Ind = np.array([elem.get('temp')[3::5] for elem in list_interest]).flatten()
     AE_Ind_prsdiff = np.array([elem.get('prs-diff')[3::5] for elem in list_interest]).flatten()
+    ## Reduce dim
+    is_execs = np.any(["exec" in file_name for file_name in files_interest])
+    reduce_dim = params["iter"]
+    if is_execs:
+        if "n_execs" in params.keys():
+            reduce_dim = params["n_execs"] * reduce_dim
+        else:
+            reduce_dim = 5 * reduce_dim
+    AE_Pre = np.reshape(AE_Pre, (int(len(AE_Pre)/reduce_dim), reduce_dim))
+    AE_Pre = np.mean(AE_Pre, axis=0)
+    analog_Pre = np.reshape(analog_Pre, (int(len(analog_Pre)/reduce_dim), reduce_dim))
+    analog_Pre = np.mean(analog_Pre, axis=0)
+    AE_Ind = np.reshape(AE_Ind, (int(len(AE_Ind)/reduce_dim), reduce_dim))
+    AE_Ind = np.mean(AE_Ind, axis=0)
+    analog_Ind = np.reshape(analog_Ind, (int(len(analog_Ind)/reduce_dim), reduce_dim))
+    analog_Ind = np.mean(analog_Ind, axis=0)
     ## Make plot
-    ## Save plot
+    if is_atribution:
+        matrix_comp = np.array([analog_Pre, analog_Ind, AE_Pre, AE_Ind])
+        df_comp = pd.DataFrame(matrix_comp.T, columns=[f'{is_Mv}AM in Pre', f'{is_Mv}AM in Post', f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post'])
+    else:
+        matrix_comp = np.array([analog_Ind, AE_Ind])
+        df_comp = pd.DataFrame(matrix_comp.T, columns=[f'{is_Mv}AM in Post', f'{is_Mv}AE-AM in Post'])
+    df_comp_melted = df_comp.melt()
+    if is_atribution:
+        a = sns.displot(df_comp_melted, y = 'value', hue = 'variable', kind='kde', fill=True, legend=False)
+        children = plt.gca().get_children()
+        l = plt.axhline(target[0], color='red')
+        plt.legend(children[:4] + [l], [f'{is_Mv}AE-AM Post', f'{is_Mv}AE-AM Pre', f'{is_Mv}AM Post', f'{is_Mv}AM Pre', 'target'],
+                loc='upper right', bbox_to_anchor=(1.05,0.9))
+        plt.ylabel(target_var)
+        ## Save plot
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.png').replace('*',''))
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.pdf').replace('*',''))
+    else:
+        a = sns.displot(df_comp_melted, y = 'value', hue = 'variable', kind='kde', fill=True, legend=False)
+        children = plt.gca().get_children()
+        l = plt.axhline(target[0], color='red')
+        plt.legend(children[:2] + [l], [f'{is_Mv}AE-AM', f'{is_Mv}AM', 'target'], loc='upper right', bbox_to_anchor=(1.,0.9))
+        plt.ylabel(target_var)
+        ## Save plot
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.png').replace('*',''))
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.pdf').replace('*',''))
     # if save_stats save stats
     # else print stats
-    
     return
 
 
