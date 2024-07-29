@@ -28,6 +28,7 @@ import traceback
 import sympy
 from scipy.spatial import minkowski_distance
 from pathlib import Path
+import glob
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
@@ -202,8 +203,96 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
         res = ind_encoded
     return res
 
+def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg_file: str = '.secret.txt'):
+    # Teleg
+    token = None
+    chat_id = None
+    user_name = None
+    if teleg:
+        with open(teleg_file) as f:
+            token = f.readline().strip()
+            chat_id = f.readline().strip()
+            user_name = f.readline().strip()
+        f.close()
+    # Read params
+    try:
+        file_params = open(file_params_name)
+    except:
+        message = OSError(f'File {file_params_name} not found. To identify the Heat wave period a configuration parameters file is needed.')
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
+            print(requests.get(url).json())
+        raise message
+    else:
+        params = json.load(file_params)
+        file_params.close()
+    
+    # Perform preprocessing
+    params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params) 
+    
+    # Call analogSearch
+    ## Obtain stats
+    ## Stats analog
+    if params["enhanced_distance"]:
+        if params["period"] == 'both':
+            stat_data = np.concatenate(((x_train_ind_prs-data_of_interest_prs).flatten(),(x_train_pre_prs-data_of_interest_prs).flatten()),axis=0)
+        elif params["period"] == 'pre':
+            stat_data = (x_train_pre_prs_prs-data_of_interest_prs).flatten()
+        else:
+            stat_data = (x_train_ind_prs-data_of_interest_prs).flatten()
+        stat_mean = np.abs(stat_data).mean()
+        stat_std = np.abs(stat_data).std()
+        stat_max = np.abs(stat_data).max()
+        stat_min = np.abs(stat_data).min()
+        print(f'Mean analog: {stat_mean}')
+        print(f'Std analog: {stat_std}')
+        print(f'Max anlog: {stat_max}')
+        print(f'Min analog: {stat_min}')
+        print(f'len analog: {len(stat_data)}')
+        print(f'len th analog: {len(stat_data[np.abs(stat_data) < (stat_mean-0.3*stat_std)])}')
 
-def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_interest_pred: Union[list, np.ndarray], time_pred: xr.DataArray, data_target: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, target_var_name : str = 'air') -> tuple:
+    ## Stats AE
+    if params["enhanced_distance"]:
+        if params["period"] == 'both':
+            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_prs, x_train_ind_prs, data_of_interest_prs)
+        elif params["period"] == 'pre':
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=x_train_pre_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+        else:
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=x_train_ind_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+        print(f'Mean: {encoded.mean()}')
+        print(f'Std: {encoded.std()}')
+        print(f'Max AE: {encoded.max()}')
+        print(f'Min AE: {encoded.min()}')
+        print(f'len AE: {len(encoded)}')
+        print(f'len th AE: {len(encoded[encoded < (encoded.mean() - 0.3*encoded.std())])}')
+
+    ## This is the threshold of difference between driver/predictor maps and target
+    ## to be acepted as low difference
+    ## Only used for the local proximity of enhanced distance
+    threshold = 0
+    threshold_AE = 0
+    if params["enhanced_distance"]:
+        threshold = stat_mean-0.3*stat_std
+        threshold_AE = encoded.mean()-0.3*encoded.std()
+    
+    if params["period"] in ['both', 'pre']:
+        file_time_name = f'./comparison-csv/analogues-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
+
+    # Analog Post
+    if params["period"] in ['both', 'post']:
+        file_time_name = f'./comparison-csv/analogues-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
+    
+    post_process(file_params_name, is_atribution = period == 'both')
+    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+    if teleg:
+        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+        requests.get(url).json()
+    warnings.warn(message)
+    return
+
+def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_interest_pred: Union[list, np.ndarray], time_pred: xr.DataArray, data_target: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, target_var_name : str = 'air', file_time_name: str = 'analogues.npy') -> tuple:
     """
       analogSearch                                       
        
@@ -237,6 +326,8 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
           Flag that indicates if iter selected can be replaced.
       target_var_name: str
           The name of the temperature variable in case of working with different Dataset.
+      file_time_name: str
+          The name of the file where to save the found analogues.
         
       Returns
       ----------
@@ -268,6 +359,7 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
     selected_target = prediction[idx,:,:]
     #print(f'\nTime prediction: \n {np.shape(time_prediction)} \n {time_prediction}')
     selected_time = time_prediction[idx]
+    np.save(file_time_name, selected_time)
     if is_not_encoded:
         selected_psr = predf[idx,:,:,:]
     else:
@@ -845,21 +937,25 @@ def runComparison(params: dict)-> tuple:
 
     # Analog Pre
     if params["period"] in ['both', 'pre']:
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
+        file_time_name = f'./comparison-csv/analogues-am-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], , file_time_name=file_time_name)
 
     # Analog Post
     if params["period"] in ['both', 'post']:
-        analog_ind = analogSearch(params["p"], params["k"], indust_pred, data_of_interest_pred, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
+        file_time_name = f'./comparison-csv/analogues-am-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_ind = analogSearch(params["p"], params["k"], indust_pred, data_of_interest_pred, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
     
 
     # AE Pre
     if params["period"] in ['both', 'pre']:
-        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred_encoded, data_of_interest_pred_encoded_pre, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
+        file_time_name = f'./comparison-csv/analogues-ae-am-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred_encoded, data_of_interest_pred_encoded_pre, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
     
 
     # AE Post
     if params["period"] in ['both', 'post']:
-        latent_analog_ind = analogSearch(params["p"], params["k"], indust_pred_encoded, data_of_interest_pred_encoded_ind, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"])
+        file_time_name = f'./comparison-csv/analogues-ae-am-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        latent_analog_ind = analogSearch(params["p"], params["k"], indust_pred_encoded, data_of_interest_pred_encoded_ind, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
     
     dict_stats = {}
     reconstruction_Pre_Analog = []
@@ -1011,6 +1107,244 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     plt.close()
 
     return heatwave_period
+
+def _get_post_information(params: dict):
+    """
+    _get_post_information
+
+    Auxiliar function used to obtain target var long_name + units, and if is Mv or not.
+
+    Parameters
+    ----------
+    params : dict
+        Dictionary with the parameters.
+
+    Returns
+    -------
+    tuple
+        A tuple of Strings. First one contains "Mv" or "" if the pred dataset is multivariate
+        or not. Second one contains long_name and units of target variable.
+    """    
+    data_pred = xr.open_dataset(params["prs_dataset"])
+    is_Mv = "Mv" if len(data_pred.data_vars) > 1 else ""
+    data_target = xr.open_dataset(params["temp_dataset"])
+    var_name = list(data_target.data_vars)[0]
+    target_var = rf'{data[var_name].attrs["long_name"]} {data[var_name].attrs["units"]}'
+    return is_Mv, target_var
+
+def post_process(params_file: str, save_stats: bool = True, is_atribution: bool = False, compare_to_am: bool = True, target_stat: str = "max"):
+    """
+    post_process
+
+    Function to perform the post-process after the execution of the main code. This method will save a comparative figure and a
+    statistical summary of the resultss.
+
+    Parameters
+    ----------
+    params_file : str
+        Path to the parameters file.
+    save_stats : bool, optional
+        If the statistical summary needs to be saved or not, by default True. If False, stats are printed but not saved.
+    is_atribution : bool, optional
+        Flag in case you are performing Atribution and want to get a comparison between Pre/Post period results, by default False
+    compare_to_am : bool, optional
+        Falg in case you performed also the Classical AM and want compare between AE-AM and AM, by default True
+    target_stat : str, optional
+        How to obtain the target value, by mean, max, min, etc., by default "max".
+
+    Returns
+    ----------
+    """      
+
+    # Read params
+    file_params = open(params_file)
+    params = json.load(file_params)
+    file_params.close()
+    # Datasets information
+    is_Mv, target_var = _get_post_information(params)
+    # Perform post-process
+    path = f'./comparison-csv/*{params["name"]}*{params["latent_dim"]}*arch{params["arch"]}*'
+    files_interest = glob.glob(path)
+    files_interest = sorted(files_interest)
+    list_interest = [pd.read_csv(df) for df in files_interest]
+    ## Obtain stats
+    tar_fun = getattr(np, target_stat)
+    target = tar_fun([elem.get('temp')[4::5] for elem in list_interest])
+    AE_Pre = np.array([elem.get('temp')[2::5] for elem in list_interest]).flatten()
+    AE_Pre_prsdiff = np.array([elem.get('prs-diff')[2::5] for elem in list_interest]).flatten()
+    AE_Ind = np.array([elem.get('temp')[3::5] for elem in list_interest]).flatten()
+    AE_Ind_prsdiff = np.array([elem.get('prs-diff')[3::5] for elem in list_interest]).flatten()
+    if compare_to_am:
+        analog_Pre = np.array([elem.get('temp')[0::5] for elem in list_interest]).flatten()
+        analog_Pre_prsdiff = np.array([elem.get('prs-diff')[0::5] for elem in list_interest]).flatten()
+        analog_Ind = np.array([elem.get('temp')[1::5] for elem in list_interest]).flatten()
+        analog_Ind_prsdiff = np.array([elem.get('prs-diff')[1::5] for elem in list_interest]).flatten()
+    ## Reduce dim
+    is_execs = np.any(["exec" in file_name for file_name in files_interest])
+    reduce_dim = params["iter"]
+    if is_execs:
+        if "n_execs" in params.keys():
+            reduce_dim = params["n_execs"] * reduce_dim
+        else:
+            reduce_dim = 5 * reduce_dim
+    AE_Pre = np.reshape(AE_Pre, (int(len(AE_Pre)/reduce_dim), reduce_dim))
+    AE_Pre = np.mean(AE_Pre, axis=0)
+    AE_Ind = np.reshape(AE_Ind, (int(len(AE_Ind)/reduce_dim), reduce_dim))
+    AE_Ind = np.mean(AE_Ind, axis=0)
+    if compare_to_am:
+        analog_Pre = np.reshape(analog_Pre, (int(len(analog_Pre)/reduce_dim), reduce_dim))
+        analog_Pre = np.mean(analog_Pre, axis=0)
+        analog_Ind = np.reshape(analog_Ind, (int(len(analog_Ind)/reduce_dim), reduce_dim))
+        analog_Ind = np.mean(analog_Ind, axis=0)
+    ## Make plot
+    if is_atribution:
+        if compare_to_am:
+            matrix_comp = np.array([analog_Pre, analog_Ind, AE_Pre, AE_Ind])
+            df_comp = pd.DataFrame(matrix_comp.T, columns=[f'{is_Mv}AM in Pre', f'{is_Mv}AM in Post', f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post'])
+        else:
+            matrix_comp = np.array([AE_Pre, AE_Ind])
+            df_comp = pd.DataFrame(matrix_comp.T, columns=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post'])
+    else:
+        if compare_to_am:
+            matrix_comp = np.array([analog_Ind, AE_Ind])
+            df_comp = pd.DataFrame(matrix_comp.T, columns=[f'{is_Mv}AM', f'{is_Mv}AE-AM'])
+        else:
+            matrix_comp = np.array([AE_Ind])
+            df_comp = pd.DataFrame(matrix_comp.T, columns=[f'{is_Mv}AE-AM'])
+    df_comp_melted = df_comp.melt()
+    if is_atribution:
+        a = sns.displot(df_comp_melted, y = 'value', hue = 'variable', kind='kde', fill=True, legend=False)
+        children = plt.gca().get_children()
+        l = plt.axhline(target[0], color='red')
+        if compare_to_am:
+            plt.legend(children[:4] + [l], [f'{is_Mv}AE-AM Post', f'{is_Mv}AE-AM Pre', f'{is_Mv}AM Post', f'{is_Mv}AM Pre', 'target'],
+                    loc='upper right', bbox_to_anchor=(1.05,0.9))
+        else:
+            plt.legend(children[:2] + [l], [f'{is_Mv}AE-AM Post', f'{is_Mv}AE-AM Pre''target'],
+                    loc='upper right', bbox_to_anchor=(1.05,0.9))
+        plt.ylabel(target_var)
+        ## Save plot
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.png').replace('*',''))
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.pdf').replace('*',''))
+    else:
+        a = sns.displot(df_comp_melted, y = 'value', hue = 'variable', kind='kde', fill=True, legend=False)
+        children = plt.gca().get_children()
+        l = plt.axhline(target[0], color='red')
+        if compare_to_am:
+            plt.legend(children[:2] + [l], [f'{is_Mv}AE-AM', f'{is_Mv}AM', 'target'], loc='upper right', bbox_to_anchor=(1.,0.9))
+        else:
+            plt.legend(children[:1] + [l], [f'{is_Mv}AE-AM', 'target'], loc='upper right', bbox_to_anchor=(1.,0.9))
+        plt.ylabel(target_var)
+        ## Save plot
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.png').replace('*',''))
+        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.pdf').replace('*',''))
+    # if save_stats save stats
+    stats_name = ["Mean", "Std", "Diff with Target", "Diff with Pred"]
+    if save_stats:
+        if is_atribution:
+            if compare_to_am:
+                stats_nd = np.array(
+                    [
+                        [np.round(np.mean(AE_Pre), decimals=4), np.round(np.mean(analog_Pre), decimals=4),
+                        np.round(np.mean(AE_Ind), decimals=4), np.round(np.mean(analog_Ind), decimals=4), np.round(target, decimals=4)],
+                        [np.round(np.std(AE_Pre), decimals=4), np.round(np.std(analog_Pre), decimals=4),
+                        np.round(np.std(AE_Ind), decimals=4), np.round(np.std(analog_Ind), decimals=4), 0],
+                        [np.round(target-np.mean(AE_Pre), decimals=4), np.round(target-np.mean(analog_Pre), decimals=4),
+                        np.round(np.mean(target-AE_Ind), decimals=4), np.round(target-np.mean(analog_Ind), decimals=4), 0],
+                        [np.round(np.mean(AE_Pre_prsdiff), decimals=4), np.round(np.mean(analog_Pre_prsdiff), decimals=4),
+                        np.round(np.mean(AE_Ind_prsdiff), decimals=4), np.round(np.mean(analog_Ind_prsdiff), decimals=4),0],
+                    ]
+                )
+                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AM in Pre', f'{is_Mv}AE-AM in Post', f'{is_Mv}AM in Post', 'Target'])
+                Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
+                df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
+            else:
+                stats_nd = np.array(
+                    [
+                        [np.round(np.mean(AE_Pre), decimals=4), np.round(np.mean(AE_Ind), decimals=4), np.round(target, decimals=4)],
+                        [np.round(np.std(AE_Pre), decimals=4), np.round(np.std(AE_Ind), decimals=4), 0],
+                        [np.round(target-np.mean(AE_Pre), decimals=4), np.round(np.mean(target-AE_Ind), decimals=4), 0],
+                        [np.round(np.mean(AE_Pre_prsdiff), decimals=4), np.round(np.mean(AE_Ind_prsdiff), decimals=4), 0],
+                    ]
+                )
+                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post', 'Target'])
+                Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
+                df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
+        else:
+            if compare_to_am:
+                stats_nd = np.array(
+                    [
+                        [np.round(np.mean(AE_Ind), decimals=4), np.round(np.mean(analog_Ind), decimals=4), np.round(target, decimals=4)],
+                        [np.round(np.std(AE_Ind), decimals=4), np.round(np.std(analog_Ind), decimals=4), 0],
+                        [np.round(np.mean(target-AE_Ind), decimals=4), np.round(target-np.mean(analog_Ind), decimals=4), 0],
+                        [np.round(np.mean(AE_Ind_prsdiff), decimals=4), np.round(np.mean(analog_Ind_prsdiff), decimals=4),0],
+                    ]
+                )
+                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM', f'{is_Mv}AM', 'Target'])
+                Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
+                df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
+            else:
+                stats_nd = np.array(
+                    [
+                        [np.round(np.mean(AE_Ind), decimals=4), np.round(target, decimals=4)],
+                        [np.round(np.std(AE_Ind), decimals=4), 0],
+                        [np.round(np.mean(target-AE_Ind), decimals=4), 0],
+                        [np.round(np.mean(AE_Ind_prsdiff), decimals=4), 0],
+                    ]
+                )
+                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM', 'Target'])
+                Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
+                df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
+    # else print stats
+    else:
+        if is_atribution:
+            if compare_to_am:
+                print(f'Pre {is_Mv}AE-AM mean: {np.mean(AE_Pre):.4f}')
+                print(f'Pre {is_Mv}AE-AM std: {np.std(AE_Pre):.4f}')
+                print(f'Pre Diff with Target: {target-np.mean(AE_Pre):.4f}')
+                print(f'Pre Diff with Pred {np.mean(AE_Pre_prsdiff):.4f}')
+                print(f'Pre {is_Mv}AM mean: {np.mean(analog_Pre):.4f}')
+                print(f'Pre {is_Mv}AM std: {np.std(analog_Pre):.4f}')
+                print(f'Pre Diff with Target: {target-np.mean(analog_Pre):.4f}')
+                print(f'Pre Diff with Pred {np.mean(analog_Pre_prsdiff):.4f}\n')
+                print(f'Post {is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
+                print(f'Post {is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
+                print(f'Post Diff with Target: {target-np.mean(AE_Ind):.4f}')
+                print(f'Post Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Post {is_Mv}AM mean: {np.mean(analog_Ind):.4f}')
+                print(f'Post {is_Mv}AM std: {np.std(analog_Ind):.4f}')
+                print(f'Post Diff with Target: {target-np.mean(analog_Ind):.4f}')
+                print(f'Post Diff with Pred {np.mean(analog_Ind_prsdiff):.4f}\n')
+                print(f'Target: {target:.4f}')
+            else:
+                print(f'Pre {is_Mv}AE-AM mean: {np.mean(AE_Pre):.4f}')
+                print(f'Pre {is_Mv}AE-AM std: {np.std(AE_Pre):.4f}')
+                print(f'Pre Diff with Target: {target-np.mean(AE_Pre):.4f}')
+                print(f'Pre Diff with Pred {np.mean(AE_Pre_prsdiff):.4f}')
+                print(f'Post {is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
+                print(f'Post {is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
+                print(f'Post Diff with Target: {target-np.mean(AE_Ind):.4f}')
+                print(f'Post Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Target: {target:.4f}')
+        else:
+            if compare_to_am:
+                print(f'{is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
+                print(f'{is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
+                print(f'Diff with Target: {target-np.mean(AE_Ind):.4f}')
+                print(f'Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'{is_Mv}AM mean: {np.mean(analog_Ind):.4f}')
+                print(f'{is_Mv}AM std: {np.std(analog_Ind):.4f}')
+                print(f'Diff with Target: {target-np.mean(analog_Ind):.4f}')
+                print(f'Diff with Pred {np.mean(analog_Ind_prsdiff):.4f}\n')
+                print(f'Target: {target:.4f}')
+            else:
+                print(f'{is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
+                print(f'{is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
+                print(f'Diff with Target: {target-np.mean(AE_Ind):.4f}')
+                print(f'Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Target: {target:.4f}')
+    return
+
 
 def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, args):
     """
@@ -1327,6 +1661,14 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
             requests.get(url).json()
         raise message
+    # Post-process
+    post_process(file_params_name, is_atribution = period == 'both')
+    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+    if teleg:
+        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+        requests.get(url).json()
+    warnings.warn(message)
+    return
 
 def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, period, method):
     """
@@ -1635,6 +1977,14 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
             requests.get(url).json()
         raise message
+    # Post-process
+    post_process(file_params_name, is_atribution = period == 'both')
+    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+    if teleg:
+        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+        requests.get(url).json()
+    warnings.warn(message)
+    return
 
 def va_am(ident:bool=False, method:str='day', config_file:str='params.json', secret_file:str='secrets.txt', verbose:bool=False, teleg:bool=False, period:str='both', save_recons:bool=False):
     """
