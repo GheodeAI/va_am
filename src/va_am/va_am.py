@@ -228,18 +228,18 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
         file_params.close()
     
     # Perform preprocessing
-    params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params) 
+    params, img_size, data_pred, data_target, time_pre_indust_pred, time_indust_pred, data_of_interest_pred, data_of_interest_target, x_train_pre_pred, x_train_ind_pred, x_test_pre_pred, x_test_ind_pred, pre_indust_pred, pre_indust_target, indust_pred, indust_target = perform_preprocess(params) 
     
     # Call analogSearch
     ## Obtain stats
     ## Stats analog
     if params["enhanced_distance"]:
         if params["period"] == 'both':
-            stat_data = np.concatenate(((x_train_ind_prs-data_of_interest_prs).flatten(),(x_train_pre_prs-data_of_interest_prs).flatten()),axis=0)
+            stat_data = np.concatenate(((x_train_ind_pred-data_of_interest_pred).flatten(),(x_train_pre_pred-data_of_interest_pred).flatten()),axis=0)
         elif params["period"] == 'pre':
-            stat_data = (x_train_pre_prs_prs-data_of_interest_prs).flatten()
+            stat_data = (x_train_pre_pred_pred-data_of_interest_pred).flatten()
         else:
-            stat_data = (x_train_ind_prs-data_of_interest_prs).flatten()
+            stat_data = (x_train_ind_pred-data_of_interest_pred).flatten()
         stat_mean = np.abs(stat_data).mean()
         stat_std = np.abs(stat_data).std()
         stat_max = np.abs(stat_data).max()
@@ -254,11 +254,11 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
     ## Stats AE
     if params["enhanced_distance"]:
         if params["period"] == 'both':
-            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_prs, x_train_ind_prs, data_of_interest_prs)
+            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_pred, x_train_ind_pred, data_of_interest_pred)
         elif params["period"] == 'pre':
-            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=x_train_pre_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_pred=x_train_pre_pred, data_of_interest_pred=data_of_interest_pred, period=params["period"])
         else:
-            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=x_train_ind_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_pred=x_train_ind_pred, data_of_interest_pred=data_of_interest_pred, period=params["period"])
         print(f'Mean: {encoded.mean()}')
         print(f'Std: {encoded.std()}')
         print(f'Max AE: {encoded.max()}')
@@ -277,12 +277,12 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
     
     if params["period"] in ['both', 'pre']:
         file_time_name = f'./comparison-csv/analogues-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
 
     # Analog Post
     if params["period"] in ['both', 'post']:
         file_time_name = f'./comparison-csv/analogues-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
-        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
+        analog_ind = analogSearch(params["p"], params["k"], indust_pred, data_of_interest_pred, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
     
     post_process(file_params_name, is_atribution = period == 'both')
     message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
@@ -296,7 +296,7 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
     """
       analogSearch                                       
        
-      Funtion that performs the Analog Search Method for a given diver/predictor and temperature (target) variable.                                  
+      Funtion that performs the Analog Search Method for a given diver/predictor and targeterature (target) variable.                                  
         
       Parameters
       ----------
@@ -938,7 +938,7 @@ def runComparison(params: dict)-> tuple:
     # Analog Pre
     if params["period"] in ['both', 'pre']:
         file_time_name = f'./comparison-csv/analogues-am-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], , file_time_name=file_time_name)
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
 
     # Analog Post
     if params["period"] in ['both', 'post']:
@@ -1004,7 +1004,7 @@ def runComparison(params: dict)-> tuple:
         if params["verbose"]:
             print(f'Iteration {i} finished')
 
-    df_stats = pd.DataFrame.from_dict(dict_stats,orient='index',columns=['prs-diff','temp-diff','temp','time'])
+    df_stats = pd.DataFrame.from_dict(dict_stats,orient='index',columns=['pred-diff','target-diff','target','time'])
     Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
     df_stats.to_csv(f'./comparison-csv/{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
     return reconstruction_Pre_Analog, reconstruction_Post_Analog, reconstruction_Pre_AE, reconstruction_Post_AE
@@ -1125,9 +1125,9 @@ def _get_post_information(params: dict):
         A tuple of Strings. First one contains "Mv" or "" if the pred dataset is multivariate
         or not. Second one contains long_name and units of target variable.
     """    
-    data_pred = xr.open_dataset(params["prs_dataset"])
+    data_pred = xr.open_dataset(params["pred_dataset"])
     is_Mv = "Mv" if len(data_pred.data_vars) > 1 else ""
-    data_target = xr.open_dataset(params["temp_dataset"])
+    data_target = xr.open_dataset(params["target_dataset"])
     var_name = list(data_target.data_vars)[0]
     target_var = rf'{data[var_name].attrs["long_name"]} {data[var_name].attrs["units"]}'
     return is_Mv, target_var
@@ -1169,16 +1169,16 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
     list_interest = [pd.read_csv(df) for df in files_interest]
     ## Obtain stats
     tar_fun = getattr(np, target_stat)
-    target = tar_fun([elem.get('temp')[4::5] for elem in list_interest])
-    AE_Pre = np.array([elem.get('temp')[2::5] for elem in list_interest]).flatten()
-    AE_Pre_prsdiff = np.array([elem.get('prs-diff')[2::5] for elem in list_interest]).flatten()
-    AE_Ind = np.array([elem.get('temp')[3::5] for elem in list_interest]).flatten()
-    AE_Ind_prsdiff = np.array([elem.get('prs-diff')[3::5] for elem in list_interest]).flatten()
+    target = tar_fun([elem.get('target')[4::5] if 'target' in elem.columns else elem.get('temp')[4::5] for elem in list_interest])
+    AE_Pre = np.array([elem.get('target')[2::5]  if 'target' in elem.columns else elem.get('temp')[2::5] for elem in list_interest]).flatten()
+    AE_Pre_preddiff = np.array([elem.get('pred-diff')[2::5] for elem in list_interest]).flatten()
+    AE_Ind = np.array([elem.get('target')[3::5]  if 'target' in elem.columns else elem.get('temp')[3::5] for elem in list_interest]).flatten()
+    AE_Ind_preddiff = np.array([elem.get('pred-diff')[3::5] for elem in list_interest]).flatten()
     if compare_to_am:
-        analog_Pre = np.array([elem.get('temp')[0::5] for elem in list_interest]).flatten()
-        analog_Pre_prsdiff = np.array([elem.get('prs-diff')[0::5] for elem in list_interest]).flatten()
-        analog_Ind = np.array([elem.get('temp')[1::5] for elem in list_interest]).flatten()
-        analog_Ind_prsdiff = np.array([elem.get('prs-diff')[1::5] for elem in list_interest]).flatten()
+        analog_Pre = np.array([elem.get('target')[0::5] if 'target' in elem.columns else elem.get('temp')[0::5] for elem in list_interest]).flatten()
+        analog_Pre_preddiff = np.array([elem.get('pred-diff')[0::5] for elem in list_interest]).flatten()
+        analog_Ind = np.array([elem.get('target')[1::5] if 'target' in elem.columns else elem.get('temp')[1::5] for elem in list_interest]).flatten()
+        analog_Ind_preddiff = np.array([elem.get('pred-diff')[1::5] for elem in list_interest]).flatten()
     ## Reduce dim
     is_execs = np.any(["exec" in file_name for file_name in files_interest])
     reduce_dim = params["iter"]
@@ -1251,8 +1251,8 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         np.round(np.std(AE_Ind), decimals=4), np.round(np.std(analog_Ind), decimals=4), 0],
                         [np.round(target-np.mean(AE_Pre), decimals=4), np.round(target-np.mean(analog_Pre), decimals=4),
                         np.round(np.mean(target-AE_Ind), decimals=4), np.round(target-np.mean(analog_Ind), decimals=4), 0],
-                        [np.round(np.mean(AE_Pre_prsdiff), decimals=4), np.round(np.mean(analog_Pre_prsdiff), decimals=4),
-                        np.round(np.mean(AE_Ind_prsdiff), decimals=4), np.round(np.mean(analog_Ind_prsdiff), decimals=4),0],
+                        [np.round(np.mean(AE_Pre_preddiff), decimals=4), np.round(np.mean(analog_Pre_preddiff), decimals=4),
+                        np.round(np.mean(AE_Ind_preddiff), decimals=4), np.round(np.mean(analog_Ind_preddiff), decimals=4),0],
                     ]
                 )
                 df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AM in Pre', f'{is_Mv}AE-AM in Post', f'{is_Mv}AM in Post', 'Target'])
@@ -1264,7 +1264,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         [np.round(np.mean(AE_Pre), decimals=4), np.round(np.mean(AE_Ind), decimals=4), np.round(target, decimals=4)],
                         [np.round(np.std(AE_Pre), decimals=4), np.round(np.std(AE_Ind), decimals=4), 0],
                         [np.round(target-np.mean(AE_Pre), decimals=4), np.round(np.mean(target-AE_Ind), decimals=4), 0],
-                        [np.round(np.mean(AE_Pre_prsdiff), decimals=4), np.round(np.mean(AE_Ind_prsdiff), decimals=4), 0],
+                        [np.round(np.mean(AE_Pre_preddiff), decimals=4), np.round(np.mean(AE_Ind_preddiff), decimals=4), 0],
                     ]
                 )
                 df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post', 'Target'])
@@ -1277,7 +1277,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         [np.round(np.mean(AE_Ind), decimals=4), np.round(np.mean(analog_Ind), decimals=4), np.round(target, decimals=4)],
                         [np.round(np.std(AE_Ind), decimals=4), np.round(np.std(analog_Ind), decimals=4), 0],
                         [np.round(np.mean(target-AE_Ind), decimals=4), np.round(target-np.mean(analog_Ind), decimals=4), 0],
-                        [np.round(np.mean(AE_Ind_prsdiff), decimals=4), np.round(np.mean(analog_Ind_prsdiff), decimals=4),0],
+                        [np.round(np.mean(AE_Ind_preddiff), decimals=4), np.round(np.mean(analog_Ind_preddiff), decimals=4),0],
                     ]
                 )
                 df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM', f'{is_Mv}AM', 'Target'])
@@ -1289,7 +1289,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         [np.round(np.mean(AE_Ind), decimals=4), np.round(target, decimals=4)],
                         [np.round(np.std(AE_Ind), decimals=4), 0],
                         [np.round(np.mean(target-AE_Ind), decimals=4), 0],
-                        [np.round(np.mean(AE_Ind_prsdiff), decimals=4), 0],
+                        [np.round(np.mean(AE_Ind_preddiff), decimals=4), 0],
                     ]
                 )
                 df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM', 'Target'])
@@ -1302,46 +1302,46 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                 print(f'Pre {is_Mv}AE-AM mean: {np.mean(AE_Pre):.4f}')
                 print(f'Pre {is_Mv}AE-AM std: {np.std(AE_Pre):.4f}')
                 print(f'Pre Diff with Target: {target-np.mean(AE_Pre):.4f}')
-                print(f'Pre Diff with Pred {np.mean(AE_Pre_prsdiff):.4f}')
+                print(f'Pre Diff with Pred {np.mean(AE_Pre_preddiff):.4f}')
                 print(f'Pre {is_Mv}AM mean: {np.mean(analog_Pre):.4f}')
                 print(f'Pre {is_Mv}AM std: {np.std(analog_Pre):.4f}')
                 print(f'Pre Diff with Target: {target-np.mean(analog_Pre):.4f}')
-                print(f'Pre Diff with Pred {np.mean(analog_Pre_prsdiff):.4f}\n')
+                print(f'Pre Diff with Pred {np.mean(analog_Pre_preddiff):.4f}\n')
                 print(f'Post {is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
                 print(f'Post {is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
                 print(f'Post Diff with Target: {target-np.mean(AE_Ind):.4f}')
-                print(f'Post Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Post Diff with Pred {np.mean(AE_Ind_preddiff):.4f}')
                 print(f'Post {is_Mv}AM mean: {np.mean(analog_Ind):.4f}')
                 print(f'Post {is_Mv}AM std: {np.std(analog_Ind):.4f}')
                 print(f'Post Diff with Target: {target-np.mean(analog_Ind):.4f}')
-                print(f'Post Diff with Pred {np.mean(analog_Ind_prsdiff):.4f}\n')
+                print(f'Post Diff with Pred {np.mean(analog_Ind_preddiff):.4f}\n')
                 print(f'Target: {target:.4f}')
             else:
                 print(f'Pre {is_Mv}AE-AM mean: {np.mean(AE_Pre):.4f}')
                 print(f'Pre {is_Mv}AE-AM std: {np.std(AE_Pre):.4f}')
                 print(f'Pre Diff with Target: {target-np.mean(AE_Pre):.4f}')
-                print(f'Pre Diff with Pred {np.mean(AE_Pre_prsdiff):.4f}')
+                print(f'Pre Diff with Pred {np.mean(AE_Pre_preddiff):.4f}')
                 print(f'Post {is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
                 print(f'Post {is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
                 print(f'Post Diff with Target: {target-np.mean(AE_Ind):.4f}')
-                print(f'Post Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Post Diff with Pred {np.mean(AE_Ind_preddiff):.4f}')
                 print(f'Target: {target:.4f}')
         else:
             if compare_to_am:
                 print(f'{is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
                 print(f'{is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
                 print(f'Diff with Target: {target-np.mean(AE_Ind):.4f}')
-                print(f'Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Diff with Pred {np.mean(AE_Ind_preddiff):.4f}')
                 print(f'{is_Mv}AM mean: {np.mean(analog_Ind):.4f}')
                 print(f'{is_Mv}AM std: {np.std(analog_Ind):.4f}')
                 print(f'Diff with Target: {target-np.mean(analog_Ind):.4f}')
-                print(f'Diff with Pred {np.mean(analog_Ind_prsdiff):.4f}\n')
+                print(f'Diff with Pred {np.mean(analog_Ind_preddiff):.4f}\n')
                 print(f'Target: {target:.4f}')
             else:
                 print(f'{is_Mv}AE-AM mean: {np.mean(AE_Ind):.4f}')
                 print(f'{is_Mv}AE-AM std: {np.std(AE_Ind):.4f}')
                 print(f'Diff with Target: {target-np.mean(AE_Ind):.4f}')
-                print(f'Diff with Pred {np.mean(AE_Ind_prsdiff):.4f}')
+                print(f'Diff with Pred {np.mean(AE_Ind_preddiff):.4f}')
                 print(f'Target: {target:.4f}')
     return
 
