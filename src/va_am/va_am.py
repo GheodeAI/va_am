@@ -311,7 +311,7 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
       time_pred: DataArray
           Time DataArray corresponding to the driver/predictor data where is searching.
       data_target: Dataset
-          Temperature Dataset used to check the target value.
+          Target Dataset Dataset used to check the target value.
       enhanced_distance: bool
           Flag that decides if local proximity has to be performed or no.
       threshold: int or float
@@ -325,7 +325,7 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
       replace_choice: bool
           Flag that indicates if iter selected can be replaced.
       target_var_name: str
-          The name of the temperature variable in case of working with different Dataset.
+          The name of the Target Dataset variable in case of working with different Dataset.
       file_time_name: str
           The name of the file where to save the found analogues.
         
@@ -532,10 +532,15 @@ def perform_preprocess(params: dict) -> tuple:
         params["target_dataset"] = 'data/air.sig995.day.nc'
     if not "pred_dataset" in params:
         params["pred_dataset"] = 'data/prmsl.day.mean.nc'
+    if not "interest_dataset" in params:
+        params["interest_dataset"] = params["target_dataset"]
+    interest_isnot_target = params["interest_dataset"] == params["target_dataset"]
 
     # Load data
-    target=xr.load_dataset(params["target_dataset"], engine='netcdf4')   #Temperatures 
-    pred=xr.load_dataset(params["pred_dataset"], engine='netcdf4')    #Atmospheric Pressure
+    target=xr.load_dataset(params["target_dataset"], engine='netcdf4')   #Target Dataset
+    pred=xr.load_dataset(params["pred_dataset"], engine='netcdf4')    #Predictors Dataset
+    if interest_isnot_target:
+        interest = xr.load_dataset(params["interest_dataset"], engine='netcdf4')
     if params["verbose"]:
         print('Data loaded')
 
@@ -544,6 +549,8 @@ def perform_preprocess(params: dict) -> tuple:
         params["target_var_name"] = list(target.data_vars)[0]
     if not "pred_var_name" in params:
         params["pred_var_name"] = list(pred.data_vars)
+    if not "interest_var_name" in params:
+        params["interest_var_name"] = params["target_var_name"]
         
     print(np.shape(target[params["target_var_name"]].data))
 
@@ -556,6 +563,11 @@ def perform_preprocess(params: dict) -> tuple:
         target = target.assign_coords(longitude=(((target.longitude + 180) % 360) - 180))
     target = target.sortby(target.longitude)
     target = target.sortby(target.latitude)
+    if interest_isnot_target:
+        if interest.longitude.min() == 0:
+            interest = interest.assign_coords(longitude=(((interest.longitude + 180) % 360) - 180))
+        interest = interest.sortby(interest.longitude)
+        interest = interest.sortby(interest.latitude)
     pred = pred.assign_coords(longitude=(((pred.longitude + 180) % 360) - 180))
     pred = pred.sortby(pred.longitude)
     pred = pred.sortby(pred.latitude)
@@ -578,7 +590,7 @@ def perform_preprocess(params: dict) -> tuple:
     else:
         season_months = list(range(1, 13))
 
-    ## Load Temperature
+    ## Load Target Dataset
     data_target = target.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     ### Pre-Industrial data
     pre_indust_target = None
@@ -589,6 +601,10 @@ def perform_preprocess(params: dict) -> tuple:
         indust_target = data_target.sel(time=slice(params["post_init"],params["post_end"]))
     else:
         indust_target = data_target.copy()
+
+    ## Load Interest if not Target
+    if interest_isnot_target:
+        interest = interest.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
 
     ## Load Driver/predictor
     data_pred = pred.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
@@ -616,6 +632,8 @@ def perform_preprocess(params: dict) -> tuple:
         
         indust_target = indust_target.resample(time="7D").mean()
         indust_pred = indust_pred.resample(time="7D").mean()
+        if interest_isnot_target:
+            interest = interest.resample(time="7D").mean()
     ## Mean over month
     if params["per_what"] == "per_month":
         if params["period"] in ['both', 'pre']:
@@ -624,14 +642,19 @@ def perform_preprocess(params: dict) -> tuple:
         
         indust_target = indust_target.resample(time="MS", closed="left", label="left").mean()
         indust_pred = indust_pred.resample(time="MS", closed="left", label="left").mean()
+        if interest_isnot_target:
+            interest = interest.resample(time="MS", closed="left", label="left").mean()
     elif params["per_what"] != "per_day":
         message = ValueError(f'Per what? What is {params["pre_what"]} supposed to be? For now I only understand per_week and per_day')
         if is_teleg:
             url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
             requests.get(url).json()
         raise message
-        
-    data_of_interest_target = indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+    
+    if interest_isnot_target:
+        data_of_interest_target = interest.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+    else:
+        data_of_interest_target = indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     data_of_interest_pred = indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     
     if params["remove_year"]:
@@ -799,7 +822,7 @@ def runComparison(params: dict)-> tuple:
     if params["verbose"]:
         print('Reshape')
         print(np.shape(data_of_interest_pred))
-        print(np.shape(data_of_interest_target[params["target_var_name"]].data))
+        print(np.shape(data_of_interest_target[params["interest_var_name"]].data))
         if params["period"] in ['both', 'pre']:
             print(np.shape(pre_indust_pred))
             print(np.shape(pre_indust_target[params["target_var_name"]].data))
@@ -965,7 +988,7 @@ def runComparison(params: dict)-> tuple:
     for i in range(params["iter"]):
         if params["period"] in ['both', 'pre']:
             dict_stats[f'WithoutAE-Pre{i}'] = [np.nansum(np.abs(data_of_interest_pred - analog_pre[0][i]))/img_size,
-                                    np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                    np.nanmean(np.abs(data_of_interest_target[params["interest_var_name"]].data - analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     np.nanmean(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(analog_pre[2][i].data)[:10]]
             reconstruction_Pre_Analog.append(analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
@@ -974,7 +997,7 @@ def runComparison(params: dict)-> tuple:
         
         if params["period"] in ['both', 'post']:
             dict_stats[f'WithoutAE-Post{i}'] = [np.nansum(np.abs(data_of_interest_pred - analog_ind[0][i]))/img_size,
-                                    np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                    np.nanmean(np.abs(data_of_interest_target[params["interest_var_name"]].data - analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     np.nanmean(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(analog_ind[2][i].data)[:10]]
             reconstruction_Post_Analog.append(analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
@@ -983,7 +1006,7 @@ def runComparison(params: dict)-> tuple:
         
         if params["period"] in ['both', 'pre']:
             dict_stats[f'WithAE-Pre-Pre{i}'] = [np.nansum(np.abs(data_of_interest_pred_encoded_pre - latent_analog_pre[0][i]))/img_size,
-                                        np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                        np.nanmean(np.abs(data_of_interest_target[params["interest_var_name"]].data - latent_analog_pre[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                         np.nanmean(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                         str(latent_analog_pre[2][i].data)[:10]]
             reconstruction_Pre_AE.append(latent_analog_pre[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
@@ -992,14 +1015,14 @@ def runComparison(params: dict)-> tuple:
 
         if params["period"] in ['both', 'post']:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nansum(np.abs(data_of_interest_pred_encoded_ind - latent_analog_ind[0][i]))/img_size,
-                                    np.nanmean(np.abs(data_of_interest_target[params["target_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
+                                    np.nanmean(np.abs(data_of_interest_target[params["interest_var_name"]].data - latent_analog_ind[1][i])[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     np.nanmean(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]),
                                     str(latent_analog_ind[2][i].data)[:10]]
             reconstruction_Post_AE.append(latent_analog_ind[1][i][int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]])
         else:
             dict_stats[f'WithAE-Post-Post{i}'] = [np.nan, np.nan, np.nan]
 
-        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_target[params["target_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))]
+        dict_stats[f'Original{i}']=[0,0,np.nanmean(((data_of_interest_target[params["interest_var_name"]].data)[:,int_reg[0]:int_reg[1],int_reg[2]:int_reg[3]]))]
         
         if params["verbose"]:
             print(f'Iteration {i} finished')
@@ -1031,7 +1054,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         params["ident_dataset"] = 'data/data_dailyMax_t2m_1940-2022.nc'
     if not "ident_var_name" in params:
         params["ident_var_name"] = 't2m_dailyMax'
-    data_target=xr.load_dataset(params["ident_dataset"], engine='netcdf4') #Temperatures
+    data_target=xr.load_dataset(params["ident_dataset"], engine='netcdf4') #Target Datasets
     if params["verbose"]:
         print('Data loaded')
 
@@ -1044,7 +1067,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     if params["verbose"]:
         print('Coord changed')
 
-    ## Load Temperature
+    ## Load Target Dataset
     data_target = data_target.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
     
     time_x = data_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"])).get_index('time')
@@ -1096,7 +1119,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     if len(heatwave_period) > 0:
         plt.title(f'Heatwave: {heatwave_period[0].date()} - {heatwave_period[-1].date()}')
         plt.axvspan(heatwave_period[0], heatwave_period[-1], label='Heatwave period', color='crimson', alpha=0.3)
-    plt.ylabel('Temperature (ºC)')
+    plt.ylabel('Target Dataset (ºC)')
     plt.legend()
     plt.tight_layout()
     plt.savefig(f'./figures/percentile{which_percentile}-for-{params["season"]}{params["name"][:-1]}.png')
