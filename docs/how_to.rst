@@ -44,10 +44,10 @@ a configuration file. It has to be a `JSON <https://en.wikipedia.org/wiki/JSON>`
         "replace_choice":           true,
         "arch":                     5,
         "verbose":                  true,
-        "temp_dataset":             "~/path/to/data/data_dailyMax_t2m_1940-2022.nc",
-        "prs_dataset":              "~/path/to/data/prmsl.nc",
+        "target_dataset":             "~/path/to/data/data_dailyMax_t2m_1940-2022.nc",
+        "pred_dataset":              "~/path/to/data/prmsl.nc",
         "ident_dataset":            "~/path/to/data_dailyMax_t2m_1940-2022.nc",
-        "temp_var_name":            "t2m_dailyMax",
+        "target_var_name":            "t2m_dailyMax",
         "p":                        2,
         "enhanced_distance":        true,
         "compile_params":           {
@@ -173,15 +173,15 @@ verbose               bool                 If ``true``, several prints and warni
                                            flag or ``verbose`` parameter of the 
                                            outside and inside code execution of
                                            program.
-temp/prs_dataset      str                  Path to target (temp) and predictor/driver
-                                           (prs) datasets (``netcdf4`` or ``grib``).
+target/pred_dataset      str                  Path to target (target) and predictor/driver
+                                           (pred) datasets (``netcdf4`` or ``grib``).
 ident_dataset         str                  Path to dataset where the identification
                                            will be performed. It could be the same 
                                            (or not) as the target dataset.
-temp_var_name         str                  Name of target variable in the dataset
+target_var_name         str                  Name of target variable in the dataset
                                            (default value if not specified is
                                            inferred from the dataset).
-prs_var_name          str                  Name of predictor/driver variable in the 
+pred_var_name          str                  Name of predictor/driver variable in the 
                                            dataset. In case you don't specify it,
                                            the name will be inferred automatically.
                                            In future multi-variate VA-AM version,
@@ -203,15 +203,15 @@ percentile            int                  Wich percentile should be used during
 out_preprocess        str or list[str]     What to return from ``perform_preprocess``
                                            function. Default value is ``all``. The 
                                            possible output are: ``params``,
-                                           ``img_size``, ``data_prs``, ``data_temp``,
-                                           ``time_pre_indust_prs``,
-                                           ``time_indust_prs``,
-                                           ``data_of_interest_prs``,
-                                           ``data_of_interest_temp``,
-                                           ``x_train_pre_prs``, ``x_train_ind_prs``,
-                                           ``x_test_pre_prs``, ``x_test_ind_prs``,
-                                           ``pre_indust_prs``, ``pre_indust_temp``,
-                                           ``indust_prs``, ``indust_temp``
+                                           ``img_size``, ``data_pred``, ``data_target``,
+                                           ``time_pre_indust_pred``,
+                                           ``time_indust_pred``,
+                                           ``data_of_interest_pred``,
+                                           ``data_of_interest_target``,
+                                           ``x_train_pre_pred``, ``x_train_ind_pred``,
+                                           ``x_test_pre_pred``, ``x_test_ind_pred``,
+                                           ``pre_indust_pred``, ``pre_indust_target``,
+                                           ``indust_pred``, ``indust_target``
 compile_params        dict                 Dictionary wich contains the configuration
                                            input arguments for the
                                            `model.compile() <https://keras.io/api/mod

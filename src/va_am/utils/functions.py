@@ -47,7 +47,7 @@ def hw_pctl(data : xr.Dataset, years : list[str], pctl: Union[int, float] = 90, 
     return pctl_th_ds
 
 
-def isHW_in_ds(data : xr.Dataset, pctl_th : xr.Dataset) -> xr.Dataset:
+def isHW_in_ds(data : xr.Dataset, pctl_th : xr.Dataset, var_name : str = 't2m_dailyMax') -> xr.Dataset:
     """
     This function add a new variable to the dataset with the boolean values of the heatwave index.
 
@@ -71,6 +71,6 @@ def isHW_in_ds(data : xr.Dataset, pctl_th : xr.Dataset) -> xr.Dataset:
         pass
     
     # Identifying the heatwave 
-    data['isHW'] = xr.where(data['t2m_dailyMax'].groupby('time.dayofyear') > pctl_th.pctl_th, 1, 0)
+    data['isHW'] = xr.where(data[var_name].groupby('time.dayofyear') > pctl_th.pctl_th, 1, 0)
     
     return data

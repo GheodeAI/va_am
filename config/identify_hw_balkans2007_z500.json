@@ -29,7 +29,7 @@
     "replace_choice":           true,
     "arch":                     5,
     "verbose":                  false,
-    "temp_dataset": 		"~/Documentos/Cosmin/va_am/data/air.sig995.day.nc",
-    "prs_dataset": 		"~/Documentos/Cosmin/va_am/data/hgt_1851-2014.nc",
+    "target_dataset": 		"~/Documentos/Cosmin/va_am/data/air.sig995.day.nc",
+    "pred_dataset": 		"~/Documentos/Cosmin/va_am/data/hgt_1851-2014.nc",
     "ident_dataset":		"~/Documentos/Cosmin/va_am/data/data_dailyMax_t2m_1940-2022.nc"
 }

@@ -29,5 +29,5 @@
     "replace_choice":           true,
     "arch":                     5,
     "verbose":                  false,
-    "prs_dataset": 		"~/Documentos/Cosmin/va_am/data/hgt_1851-2014.nc",
+    "pred_dataset": 		"~/Documentos/Cosmin/va_am/data/hgt_1851-2014.nc"
 }
