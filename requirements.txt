@@ -1,5 +1,5 @@
 keras==2.10.0
-matplotlib==3.6.1
+matplotlib==3.8.4
 numpy==1.21.6
 pandas==2.0.3
 Requests==2.31.0
