@@ -203,13 +203,61 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
     return res
 
 def am(params: dict, ident: bool, teleg: bool, save_recons: bool, teleg_file: str = '.secret.txt'):
-    # Perform preprocessing 
-    # perform_preoprocess()
+    # Perform preprocessing
+    params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params) 
     
     # Call analogSearch
-    # analogSearch()
+    ## Obtain stats
+    ## Stats analog
+    if params["enhanced_distance"]:
+        if params["period"] == 'both':
+            stat_data = np.concatenate(((x_train_ind_prs-data_of_interest_prs).flatten(),(x_train_pre_prs-data_of_interest_prs).flatten()),axis=0)
+        elif params["period"] == 'pre':
+            stat_data = (x_train_pre_prs_prs-data_of_interest_prs).flatten()
+        else:
+            stat_data = (x_train_ind_prs-data_of_interest_prs).flatten()
+        stat_mean = np.abs(stat_data).mean()
+        stat_std = np.abs(stat_data).std()
+        stat_max = np.abs(stat_data).max()
+        stat_min = np.abs(stat_data).min()
+        print(f'Mean analog: {stat_mean}')
+        print(f'Std analog: {stat_std}')
+        print(f'Max anlog: {stat_max}')
+        print(f'Min analog: {stat_min}')
+        print(f'len analog: {len(stat_data)}')
+        print(f'len th analog: {len(stat_data[np.abs(stat_data) < (stat_mean-0.3*stat_std)])}')
 
-    # Post process
+    ## Stats AE
+    if params["enhanced_distance"]:
+        if params["period"] == 'both':
+            encoded = get_AE_stats(params["with_cpu"], params["use_VAE"], AE_pre, AE_ind, x_train_pre_prs, x_train_ind_prs, data_of_interest_prs)
+        elif params["period"] == 'pre':
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_pre=AE_pre, pre_indust_prs=x_train_pre_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+        else:
+            encoded = get_AE_stats(with_cpu=params["with_cpu"], use_VAE=params["use_VAE"], AE_ind=AE_ind, indust_prs=x_train_ind_prs, data_of_interest_prs=data_of_interest_prs, period=params["period"])
+        print(f'Mean: {encoded.mean()}')
+        print(f'Std: {encoded.std()}')
+        print(f'Max AE: {encoded.max()}')
+        print(f'Min AE: {encoded.min()}')
+        print(f'len AE: {len(encoded)}')
+        print(f'len th AE: {len(encoded[encoded < (encoded.mean() - 0.3*encoded.std())])}')
+
+    ## This is the threshold of difference between driver/predictor maps and target
+    ## to be acepted as low difference
+    ## Only used for the local proximity of enhanced distance
+    threshold = 0
+    threshold_AE = 0
+    if params["enhanced_distance"]:
+        threshold = stat_mean-0.3*stat_std
+        threshold_AE = encoded.mean()-0.3*encoded.std()
+    
+    if params["period"] in ['both', 'pre']:
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+
+    # Analog Post
+    if params["period"] in ['both', 'post']:
+        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+    
     return
 
 def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
