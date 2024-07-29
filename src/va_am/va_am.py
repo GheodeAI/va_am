@@ -203,7 +203,30 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
         res = ind_encoded
     return res
 
-def am(params: dict, ident: bool, teleg: bool, save_recons: bool, teleg_file: str = '.secret.txt'):
+def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg_file: str = '.secret.txt'):
+    # Teleg
+    token = None
+    chat_id = None
+    user_name = None
+    if teleg:
+        with open(teleg_file) as f:
+            token = f.readline().strip()
+            chat_id = f.readline().strip()
+            user_name = f.readline().strip()
+        f.close()
+    # Read params
+    try:
+        file_params = open(file_params_name)
+    except:
+        message = OSError(f'File {file_params_name} not found. To identify the Heat wave period a configuration parameters file is needed.')
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&parse_mode=HTML&text={'[<b>'+type(message).__name__+'</b>] '+user_name+': '+str(message)}"
+            print(requests.get(url).json())
+        raise message
+    else:
+        params = json.load(file_params)
+        file_params.close()
+    
     # Perform preprocessing
     params, img_size, data_prs, data_temp, time_pre_indust_prs, time_indust_prs, data_of_interest_prs, data_of_interest_temp, x_train_pre_prs, x_train_ind_prs, x_test_pre_prs, x_test_ind_prs, pre_indust_prs, pre_indust_temp, indust_prs, indust_temp = perform_preprocess(params) 
     
@@ -253,15 +276,23 @@ def am(params: dict, ident: bool, teleg: bool, save_recons: bool, teleg_file: st
         threshold_AE = encoded.mean()-0.3*encoded.std()
     
     if params["period"] in ['both', 'pre']:
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        file_time_name = f'./comparison-csv/analogues-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
 
     # Analog Post
     if params["period"] in ['both', 'post']:
-        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        file_time_name = f'./comparison-csv/analogues-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
     
+    post_process(file_params_name, is_atribution = period == 'both')
+    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+    if teleg:
+        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+        requests.get(url).json()
+    warnings.warn(message)
     return
 
-def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air') -> tuple:
+def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_interest_prs: Union[list, np.ndarray], time_prs: xr.DataArray, data_temp: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, temp_var_name : str = 'air', file_time_name: str = 'analogues.npy') -> tuple:
     """
       analogSearch                                       
        
@@ -295,6 +326,8 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
           Flag that indicates if iter selected can be replaced.
       temp_var_name: str
           The name of the temperature variable in case of working with different Dataset.
+      file_time_name: str
+          The name of the file where to save the found analogues.
         
       Returns
       ----------
@@ -326,6 +359,7 @@ def analogSearch(p:int, k: int, data_prs: Union[list, np.ndarray], data_of_inter
     selected_temp = prediction[idx,:,:]
     #print(f'\nTime prediction: \n {np.shape(time_prediction)} \n {time_prediction}')
     selected_time = time_prediction[idx]
+    np.save(file_time_name, selected_time)
     if is_not_encoded:
         selected_psr = prsf[idx,:,:,:]
     else:
@@ -903,21 +937,25 @@ def runComparison(params: dict)-> tuple:
 
     # Analog Pre
     if params["period"] in ['both', 'pre']:
-        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        file_time_name = f'./comparison-csv/analogues-am-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs, data_of_interest_prs, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
 
     # Analog Post
     if params["period"] in ['both', 'post']:
-        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        file_time_name = f'./comparison-csv/analogues-am-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        analog_ind = analogSearch(params["p"], params["k"], indust_prs, data_of_interest_prs, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
     
 
     # AE Pre
     if params["period"] in ['both', 'pre']:
-        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        file_time_name = f'./comparison-csv/analogues-ae-am-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        latent_analog_pre = analogSearch(params["p"], params["k"], pre_indust_prs_encoded, data_of_interest_prs_encoded_pre, time_pre_indust_prs, pre_indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
     
 
     # AE Post
     if params["period"] in ['both', 'post']:
-        latent_analog_ind = analogSearch(params["p"], params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"])
+        file_time_name = f'./comparison-csv/analogues-ae-am-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
+        latent_analog_ind = analogSearch(params["p"], params["k"], indust_prs_encoded, data_of_interest_prs_encoded_ind, time_indust_prs, indust_temp, params["enhanced_distance"], threshold=threshold_AE, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], temp_var_name=params["temp_var_name"], file_time_name=file_time_name)
     
     dict_stats = {}
     reconstruction_Pre_Analog = []
@@ -1624,7 +1662,7 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             requests.get(url).json()
         raise message
     # Post-process
-    post_process(file_params_name, is_atribution = period == 'both'):
+    post_process(file_params_name, is_atribution = period == 'both')
     message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
     if teleg:
         url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
@@ -1940,7 +1978,7 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             requests.get(url).json()
         raise message
     # Post-process
-    post_process(file_params_name, is_atribution = period == 'both'):
+    post_process(file_params_name, is_atribution = period == 'both')
     message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
     if teleg:
         url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
