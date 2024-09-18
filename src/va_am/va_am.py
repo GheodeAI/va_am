@@ -237,7 +237,7 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
         if params["period"] == 'both':
             stat_data = np.concatenate(((x_train_ind_pred-data_of_interest_pred).flatten(),(x_train_pre_pred-data_of_interest_pred).flatten()),axis=0)
         elif params["period"] == 'pre':
-            stat_data = (x_train_pre_pred_pred-data_of_interest_pred).flatten()
+            stat_data = (x_train_pre_pred-data_of_interest_pred).flatten()
         else:
             stat_data = (x_train_ind_pred-data_of_interest_pred).flatten()
         stat_mean = np.abs(stat_data).mean()
@@ -534,13 +534,18 @@ def perform_preprocess(params: dict) -> tuple:
         params["pred_dataset"] = 'data/prmsl.day.mean.nc'
     if not "interest_dataset" in params:
         params["interest_dataset"] = params["target_dataset"]
-    interest_isnot_target = params["interest_dataset"] == params["target_dataset"]
+    interest_isnot_target = params["interest_dataset"] != params["target_dataset"]
 
     # Load data
     target=xr.load_dataset(params["target_dataset"], engine='netcdf4')   #Target Dataset
     pred=xr.load_dataset(params["pred_dataset"], engine='netcdf4')    #Predictors Dataset
+    if "time_bnds" in list(pred.data_vars):
+        pred = pred.drop("time_bnds")
     if interest_isnot_target:
-        interest = xr.load_dataset(params["interest_dataset"], engine='netcdf4')
+        interest = xr.load_dataset(params["interest_dataset"], engine='netcdf4') # Target Dataset for Interest Event 
+        pred_interest = xr.load_dataset(params["pred_interest_dataset"], engine='netcdf4') # Predictors Dataset for Interest Event
+        if "time_bnds" in list(pred_interest.data_vars):
+            pred_interest = pred_interest.drop("time_bnds")
     if params["verbose"]:
         print('Data loaded')
 
@@ -551,6 +556,12 @@ def perform_preprocess(params: dict) -> tuple:
         params["pred_var_name"] = list(pred.data_vars)
     if not "interest_var_name" in params:
         params["interest_var_name"] = params["target_var_name"]
+    if not "pred_interest_var_name" in params:
+        if interest_isnot_target: 
+            params["pred_interest_var_name"] = list(pred_interest.data_vars)
+        else:
+            params["pred_interest_var_name"] = params["pred_var_name"]
+    
         
     print(np.shape(target[params["target_var_name"]].data))
 
@@ -559,16 +570,21 @@ def perform_preprocess(params: dict) -> tuple:
     
     # Preprocess
     ## Change longitude coordinates from 0 - 359 to -180 - 179
-    if target.longitude.min() == 0:
+    if target.longitude.min() >= 0:
         target = target.assign_coords(longitude=(((target.longitude + 180) % 360) - 180))
     target = target.sortby(target.longitude)
     target = target.sortby(target.latitude)
     if interest_isnot_target:
-        if interest.longitude.min() == 0:
+        if interest.longitude.min() >= 0:
             interest = interest.assign_coords(longitude=(((interest.longitude + 180) % 360) - 180))
         interest = interest.sortby(interest.longitude)
         interest = interest.sortby(interest.latitude)
-    pred = pred.assign_coords(longitude=(((pred.longitude + 180) % 360) - 180))
+        if pred_interest.longitude.min() >= 0:
+            pred_interest = pred_interest.assign_coords(longitude=(((pred_interest.longitude + 180) % 360) - 180))
+        pred_interest = pred_interest.sortby(pred_interest.longitude)
+        pred_interest = pred_interest.sortby(pred_interest.latitude)
+    if pred.longitude.min() >= 0:
+        pred = pred.assign_coords(longitude=(((pred.longitude + 180) % 360) - 180))
     pred = pred.sortby(pred.longitude)
     pred = pred.sortby(pred.latitude)
     if params["verbose"]:
@@ -605,6 +621,7 @@ def perform_preprocess(params: dict) -> tuple:
     ## Load Interest if not Target
     if interest_isnot_target:
         interest = interest.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
+        pred_interest = pred_interest.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
 
     ## Load Driver/predictor
     data_pred = pred.sel(latitude=slice(params["latitude_min"],params["latitude_max"]),longitude=slice(params["longitude_min"],params["longitude_max"]))
@@ -634,6 +651,8 @@ def perform_preprocess(params: dict) -> tuple:
         indust_pred = indust_pred.resample(time="7D").mean()
         if interest_isnot_target:
             interest = interest.resample(time="7D").mean()
+            pred_interest = pred_interest.resample(time="7D").mean()
+
     ## Mean over month
     if params["per_what"] == "per_month":
         if params["period"] in ['both', 'pre']:
@@ -644,6 +663,8 @@ def perform_preprocess(params: dict) -> tuple:
         indust_pred = indust_pred.resample(time="MS", closed="left", label="left").mean()
         if interest_isnot_target:
             interest = interest.resample(time="MS", closed="left", label="left").mean()
+            pred_interest = pred_interest.resample(time="MS", closed="left", label="left").mean()
+
     elif params["per_what"] != "per_day":
         message = ValueError(f'Per what? What is {params["pre_what"]} supposed to be? For now I only understand per_week and per_day')
         if is_teleg:
@@ -653,22 +674,25 @@ def perform_preprocess(params: dict) -> tuple:
     
     if interest_isnot_target:
         data_of_interest_target = interest.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+        data_of_interest_pred = pred_interest.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     else:
         data_of_interest_target = indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
-    data_of_interest_pred = indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+        print(indust_pred)
+        data_of_interest_pred = indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
+        print(data_of_interest_pred)
     
     if params["remove_year"]:
         indust_target = indust_target.drop_sel(time=(indust_target.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
         indust_pred = indust_pred.drop_sel(time=(indust_pred.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
         if params["period"] == 'pre':
-            if datetime.datetime.strptime(params["data_of_interest_init"], "%Y-%m-%d") < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
+            if params["data_of_interest_init"] < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
                 pre_indust_target = pre_indust_target.drop_sel(time=(pre_indust_target.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))
                 pre_indust_pred = pre_indust_pred.drop_sel(time=(pre_indust_pred.sel(time=slice(str(params["data_of_interest_init"].year),str(params["data_of_interest_end"].year)))).get_index('time'))        
     else:
         indust_target = indust_target.drop_sel(time=(indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
         indust_pred = indust_pred.drop_sel(time=(indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
         if params["period"] == 'pre':
-            if datetime.datetime.strptime(params["data_of_interest_init"], "%Y-%m-%d") < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
+            if params["data_of_interest_init"] < datetime.datetime.strptime(params["pre_end"], "%Y-%m-%d"):
                 pre_indust_target = pre_indust_target.drop_sel(time=(pre_indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
                 pre_indust_pred = pre_indust_pred.drop_sel(time=(pre_indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))).get_index('time'))
     
@@ -716,8 +740,7 @@ def perform_preprocess(params: dict) -> tuple:
     x_test_ind_norm_pred = x_test_ind_pred.copy()
     data_of_interest_norm_pred = data_of_interest_pred.copy()
     indust_norm_pred = indust_pred.copy()
-    for pred_var in params["pred_var_name"]:
-
+    for pred_var, pred_interest_var in zip(params["pred_var_name"], params["pred_interest_var_name"]):
         if params["period"] == 'both':
             min_scale_pred = np.min(np.array([x_train_ind_pred[pred_var].min(), x_train_pre_pred[pred_var].min()]))
             norm_scale_pred = np.max(np.array([x_train_ind_pred[pred_var].max(), x_train_pre_pred[pred_var].max()])) - min_scale_pred
@@ -735,7 +758,7 @@ def perform_preprocess(params: dict) -> tuple:
         
         x_train_ind_norm_pred[pred_var].data = (x_train_ind_pred[pred_var].data - min_scale_pred) / norm_scale_pred
         x_test_ind_norm_pred[pred_var].data = (x_test_ind_pred[pred_var].data - min_scale_pred) / norm_scale_pred
-        data_of_interest_norm_pred[pred_var].data = (data_of_interest_pred[pred_var].data - min_scale_pred) / norm_scale_pred
+        data_of_interest_norm_pred[pred_interest_var].data = (data_of_interest_pred[pred_interest_var].data - min_scale_pred) / norm_scale_pred
         indust_norm_pred[pred_var].data = (indust_pred[pred_var].data - min_scale_pred) / norm_scale_pred
 
     if params["verbose"]:
@@ -878,7 +901,7 @@ def runComparison(params: dict)-> tuple:
         if params["period"] == 'both':
             stat_data = np.concatenate(((x_train_ind_pred-data_of_interest_pred).flatten(),(x_train_pre_pred-data_of_interest_pred).flatten()),axis=0)
         elif params["period"] == 'pre':
-            stat_data = (x_train_pre_pred_pred-data_of_interest_pred).flatten()
+            stat_data = (x_train_pre_pred-data_of_interest_pred).flatten()
         else:
             stat_data = (x_train_ind_pred-data_of_interest_pred).flatten()
         stat_mean = np.abs(stat_data).mean()
@@ -1152,7 +1175,7 @@ def _get_post_information(params: dict):
     is_Mv = "Mv" if len(data_pred.data_vars) > 1 else ""
     data_target = xr.open_dataset(params["target_dataset"])
     var_name = list(data_target.data_vars)[0]
-    target_var = rf'{data[var_name].attrs["long_name"]} {data[var_name].attrs["units"]}'
+    target_var = rf'{data_target[var_name].attrs["long_name"]} {data_target[var_name].attrs["units"]}'
     return is_Mv, target_var
 
 def post_process(params_file: str, save_stats: bool = True, is_atribution: bool = False, compare_to_am: bool = True, target_stat: str = "max"):
