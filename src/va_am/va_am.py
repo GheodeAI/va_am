@@ -29,6 +29,9 @@ import sympy
 from scipy.spatial import minkowski_distance
 from pathlib import Path
 import glob
+import seaborn as sns
+sns.set(font_scale=1.3, rc={'text.usetex' : True})
+sns.set_style(style='white')
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
@@ -562,8 +565,6 @@ def perform_preprocess(params: dict) -> tuple:
         else:
             params["pred_interest_var_name"] = params["pred_var_name"]
     
-        
-    print(np.shape(target[params["target_var_name"]].data))
 
     if params["target_var_name"] == "t2m_dailyMax":
         params["pre_init"] = str(target.time.data[0].astype('datetime64[D]'))
@@ -677,9 +678,7 @@ def perform_preprocess(params: dict) -> tuple:
         data_of_interest_pred = pred_interest.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
     else:
         data_of_interest_target = indust_target.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
-        print(indust_pred)
         data_of_interest_pred = indust_pred.sel(time=slice(params["data_of_interest_init"],params["data_of_interest_end"]))
-        print(data_of_interest_pred)
     
     if params["remove_year"]:
         if params["period"] in ["all", "post"]:
@@ -943,7 +942,6 @@ def runComparison(params: dict)-> tuple:
         else:
             int_reg = calculate_interest_region(params["interest_region"], [params["latitude_min"], params["latitude_max"], params["longitude_min"], params["longitude_max"]], params["resolution"], is_teleg, params["secret_file"])
 
-    print(f'int_reg:\n{int_reg}\n')
     ## This is the threshold of difference between driver/predictor maps and target
     ## to be acepted as low difference
     ## Only used for the local proximity of enhanced distance
@@ -1212,8 +1210,9 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
     file_params.close()
     # Datasets information
     is_Mv, target_var = _get_post_information(params)
+    current = datetime.datetime.now()
     # Perform post-process
-    path = f'./comparison-csv/*{params["name"]}*{params["latent_dim"]}*arch{params["arch"]}*'
+    path = f'./comparison-csv/*{params["name"]}*{params["latent_dim"]}*arch{params["arch"]}*.csv'
     files_interest = glob.glob(path)
     files_interest = sorted(files_interest)
     list_interest = [pd.read_csv(df) for df in files_interest]
@@ -1265,7 +1264,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
     if is_atribution:
         a = sns.displot(df_comp_melted, y = 'value', hue = 'variable', kind='kde', fill=True, legend=False)
         children = plt.gca().get_children()
-        l = plt.axhline(target[0], color='red')
+        l = plt.axhline(target, color='red')
         if compare_to_am:
             plt.legend(children[:4] + [l], [f'{is_Mv}AE-AM Post', f'{is_Mv}AE-AM Pre', f'{is_Mv}AM Post', f'{is_Mv}AM Pre', 'target'],
                     loc='upper right', bbox_to_anchor=(1.05,0.9))
@@ -1274,20 +1273,20 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                     loc='upper right', bbox_to_anchor=(1.05,0.9))
         plt.ylabel(target_var)
         ## Save plot
-        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.png').replace('*',''))
-        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.pdf').replace('*',''))
+        plt.savefig((f'./figures/distribution-{params["season"]}-automated-functions-LatentSpace{params["latent_dim"]}-{params["k"]}.png').replace('*',''))
+        plt.savefig((f'./figures/distribution-{params["season"]}-automated-functions-LatentSpace{params["latent_dim"]}-{params["k"]}.pdf').replace('*',''))
     else:
         a = sns.displot(df_comp_melted, y = 'value', hue = 'variable', kind='kde', fill=True, legend=False)
         children = plt.gca().get_children()
-        l = plt.axhline(target[0], color='red')
+        l = plt.axhline(target, color='red')
         if compare_to_am:
             plt.legend(children[:2] + [l], [f'{is_Mv}AE-AM', f'{is_Mv}AM', 'target'], loc='upper right', bbox_to_anchor=(1.,0.9))
         else:
             plt.legend(children[:1] + [l], [f'{is_Mv}AE-AM', 'target'], loc='upper right', bbox_to_anchor=(1.,0.9))
         plt.ylabel(target_var)
         ## Save plot
-        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.png').replace('*',''))
-        plt.savefig((f'./figures/distribution-{season}-automated-functions-LatentSpace{latent_dim}-{k}.pdf').replace('*',''))
+        plt.savefig((f'./figures/distribution-{params["season"]}-automated-functions-LatentSpace{params["latent_dim"]}-{params["k"]}.png').replace('*',''))
+        plt.savefig((f'./figures/distribution-{params["season"]}-automated-functions-LatentSpace{params["latent_dim"]}-{params["k"]}.pdf').replace('*',''))
     # if save_stats save stats
     stats_name = ["Mean", "Std", "Diff with Target", "Diff with Pred"]
     if save_stats:
@@ -1305,7 +1304,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         np.round(np.mean(AE_Ind_preddiff), decimals=4), np.round(np.mean(analog_Ind_preddiff), decimals=4),0],
                     ]
                 )
-                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AM in Pre', f'{is_Mv}AE-AM in Post', f'{is_Mv}AM in Post', 'Target'])
+                df_stats = pd.DataFrame(data=stats_nd.T, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AM in Pre', f'{is_Mv}AE-AM in Post', f'{is_Mv}AM in Post', 'Target'])
                 Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
                 df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
             else:
@@ -1317,7 +1316,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         [np.round(np.mean(AE_Pre_preddiff), decimals=4), np.round(np.mean(AE_Ind_preddiff), decimals=4), 0],
                     ]
                 )
-                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post', 'Target'])
+                df_stats = pd.DataFrame(data=stats_nd.T, columns=stats_name, index=[f'{is_Mv}AE-AM in Pre', f'{is_Mv}AE-AM in Post', 'Target'])
                 Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
                 df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
         else:
@@ -1330,7 +1329,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         [np.round(np.mean(AE_Ind_preddiff), decimals=4), np.round(np.mean(analog_Ind_preddiff), decimals=4),0],
                     ]
                 )
-                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM', f'{is_Mv}AM', 'Target'])
+                df_stats = pd.DataFrame(data=stats_nd.T, columns=stats_name, index=[f'{is_Mv}AE-AM', f'{is_Mv}AM', 'Target'])
                 Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
                 df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
             else:
@@ -1342,7 +1341,7 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
                         [np.round(np.mean(AE_Ind_preddiff), decimals=4), 0],
                     ]
                 )
-                df_stats = pd.DataFrame(data=stats_nd, columns=stats_name, index=[f'{is_Mv}AE-AM', 'Target'])
+                df_stats = pd.DataFrame(data=stats_nd.T, columns=stats_name, index=[f'{is_Mv}AE-AM', 'Target'])
                 Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
                 df_stats.to_csv(f'./comparison-csv/stats-summary-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}-analog-comparision-stats{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.csv'.replace(" ","").replace("'", "").replace(",",""))
     # else print stats

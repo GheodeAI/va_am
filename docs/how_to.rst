@@ -173,20 +173,29 @@ verbose               bool                 If ``true``, several prints and warni
                                            flag or ``verbose`` parameter of the 
                                            outside and inside code execution of
                                            program.
-target/pred_dataset      str                  Path to target (target) and predictor/driver
+target/pred_dataset   str                  Path to target (target) and predictor/driver
                                            (pred) datasets (``netcdf4`` or ``grib``).
 ident_dataset         str                  Path to dataset where the identification
                                            will be performed. It could be the same 
                                            (or not) as the target dataset.
-target_var_name         str                  Name of target variable in the dataset
+interest_dataset      str                  Path (optional) to the dataset of interest.
+                                           That is, the one where occurs the event you
+                                           are studing. Only specifie if you want to 
+                                           extract the information od the interest
+                                           from a different dataset than
+                                           ``target_dataset``.
+target_var_name       str                  Name of target variable in the dataset
                                            (default value if not specified is
                                            inferred from the dataset).
-pred_var_name          str                  Name of predictor/driver variable in the 
+pred_var_name         str                  Name of predictor/driver variable in the 
                                            dataset. In case you don't specify it,
                                            the name will be inferred automatically.
                                            In future multi-variate VA-AM version,
                                            this parameter will change, probably to a
                                            list of strings or something like this.
+interest_var_name     str                  Same case as ``target_var_name`` and 
+                                           ``pred_var_name``, but only if
+                                           ``interest_dataset`` is used.
 p                     int                  Wich p-Minkowski distance to perform while
                                            the analog search, where taxicab
                                            distance is ``p=1``, euclidean distance is
