@@ -6,5 +6,4 @@ API reference
    :maxdepth: 4
 
    va_am
-   va_am.va_am
    va_am.utils
