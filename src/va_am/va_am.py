@@ -35,21 +35,21 @@ sns.set_style(style='white')
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
-      square_dims
+    square_dims
+    
+    Function that return the needed dimensions for the plots of the encoded, given the latent dimension and the ratio between width and height.            
       
-      Function that return the needed dimensions for the plots of the encoded, given the latent dimension and the ratio between width and height.            
-        
-      Parameters
-      ----------
-      size: int of list[int]
-          The latent dimension size.
-      ratio_w_h: int or float
-          Desired ration between width and height.
-        
-      Returns
-      ----------
-      : ndarray
-          A ndarray with the new square dimensions.
+    Parameters
+    ----------
+    size: int of list[int]
+        The latent dimension size.
+    ratio_w_h: int or float
+        Desired ration between width and height.
+      
+    Returns
+    ----------
+    : ndarray
+        A ndarray with the new square dimensions.
     """
     divs = np.array(sympy.divisors(size))
     dist_to_root = np.abs(divs-np.sqrt(size)*ratio_w_h)
@@ -1721,41 +1721,41 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
 
 def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, period, method):
     """
-      _step_loop
-       
-      Auxiliar method that handle the runs depending on the options specified.
-        
-      Parameters
-      ----------
-      params: dict
-          Default parameters and configuration dictionary for most of the executions.
-      params_multiple: dict
-          Specific parameters and configuration dictionary that overwrite params for some methods.
-      file_params_name: str
-          The default name of the params/configuration file.
-      n_execs: int
-          The number of repeted executions for some methods.
-      ident: bool
-          Value of flag to performs the identification period task or not.
-      verb: bool
-          Value of flag that indicates if verbosity information should be show or not.
-      teleg: bool
-          Value of flag for sending Exceptions to Telegram bot.
-      token: str
-          Token of Telegram bot.
-      chat_id: str
-          ID of the chat where the Telegram bot will send the messages.
-      user_name: str
-          User name to mention in case of Exceptions.
-      save_recons: bool
-          Value of flag for saving or not the reconstrucion information in an .nc file.
-      period: str
-          Specify the period where to perform the operation between `both` (default), `pre` or `post`.
-      method: str
-          Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
-        
-      Returns
-      ----------
+    _step_loop
+     
+    Auxiliar method that handle the runs depending on the options specified.
+      
+    Parameters
+    ----------
+    params: dict
+        Default parameters and configuration dictionary for most of the executions.
+    params_multiple: dict
+        Specific parameters and configuration dictionary that overwrite params for some methods.
+    file_params_name: str
+        The default name of the params/configuration file.
+    n_execs: int
+        The number of repeted executions for some methods.
+    ident: bool
+        Value of flag to performs the identification period task or not.
+    verb: bool
+        Value of flag that indicates if verbosity information should be show or not.
+    teleg: bool
+        Value of flag for sending Exceptions to Telegram bot.
+    token: str
+        Token of Telegram bot.
+    chat_id: str
+        ID of the chat where the Telegram bot will send the messages.
+    user_name: str
+        User name to mention in case of Exceptions.
+    save_recons: bool
+        Value of flag for saving or not the reconstrucion information in an .nc file.
+    period: str
+        Specify the period where to perform the operation between `both` (default), `pre` or `post`.
+    method: str
+        Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
+      
+    Returns
+    ----------
     """
     reconstructions_Pre_Analog = []
     reconstructions_Post_Analog = []
@@ -2042,26 +2042,26 @@ def va_am(ident:bool=False, method:str='day', config_file:str='params.json', sec
     Equivalent to main function. Its scope is to provide a way to perform the same procedures as `main` function, but by importing it in another python code. 
     
     Parameters
-      ----------
-      ident: bool
-          Value of flag to performs the identification period task or not.
-      method: str
-          Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
-      config_file: str
-          The default name of the params/configuration file.
-      secret_file: str
-          The default name of the Telegram bot informatin file.
-      verbose: bool
-          Value of flag that indicates if verbosity information should be show or not.
-      teleg: bool
-          Value of flag for sending Exceptions to Telegram bot.
-      period: str
-          Specify the period where to perform the operation between `both` (default), `pre` or `post`.
-      save_recons: bool
-          Value of flag for saving or not the reconstrucion information in an .nc file.
+    ----------
+    ident: bool
+        Value of flag to performs the identification period task or not.
+    method: str
+        Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
+    config_file: str
+        The default name of the params/configuration file.
+    secret_file: str
+        The default name of the Telegram bot informatin file.
+    verbose: bool
+        Value of flag that indicates if verbosity information should be show or not.
+    teleg: bool
+        Value of flag for sending Exceptions to Telegram bot.
+    period: str
+        Specify the period where to perform the operation between `both` (default), `pre` or `post`.
+    save_recons: bool
+        Value of flag for saving or not the reconstrucion information in an .nc file.
         
-      Returns
-      ----------
+    Returns
+    ----------
     """
     # Default parameters
     params = {
