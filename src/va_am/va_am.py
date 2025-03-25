@@ -35,8 +35,6 @@ sns.set_style(style='white')
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
-      square_dims
-       
       Function that return the needed dimensions for the plots of the encoded, given the latent dimension and the ratio between width and height.            
         
       Parameters
