@@ -322,7 +322,7 @@ execution. For now, you can use it by:
     from va_am import analogSearch
     analogSearch(...)
 
-See `API reference <https://va-am.readthedocs.io/en/latest/va_am.html#va_am.va_am.analogSearch>`_ for details about ``analogSearch`` arguments
+See the `corresponding API reference <https://va-am.readthedocs.io/en/latest/va_am.html#va_am.va_am.analogSearch>`_ for details about ``analogSearch`` arguments
 
 .. _va-am-methods:
 
