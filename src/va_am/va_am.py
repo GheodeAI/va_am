@@ -35,21 +35,33 @@ sns.set_style(style='white')
 
 def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int,float]=1):
     """
-      square_dims
-       
-      Function that return the needed dimensions for the plots of the encoded, given the latent dimension and the ratio between width and height.            
-        
-      Parameters
-      ----------
-      size: int of list[int]
-          The latent dimension size.
-      ratio_w_h: int or float
-          Desired ration between width and height.
-        
-      Returns
-      ----------
-      : ndarray
-          A ndarray with the new square dimensions.
+    square_dims
+    
+    Function that return the needed dimensions for the plots of the encoded, given the latent dimension and the ratio between width and height.            
+      
+    Parameters
+    ----------
+    size: int of list[int]
+        The latent dimension size.
+    ratio_w_h: int or float
+        Desired ration between width and height.
+      
+    Returns
+    -------
+    : tuple
+        (width, height) dimensions for grid.
+    
+    Raises
+    ------
+    ValueError
+        If input size is not positive.
+        If ratio_w_h is <= 0.
+    
+    Notes
+    -----
+    - Uses sympy.divisors for efficient factor calculation
+    - Always returns smaller dimension first in tuple
+    - For non-integer ratios, finds closest divisor match
     """
     divs = np.array(sympy.divisors(size))
     dist_to_root = np.abs(divs-np.sqrt(size)*ratio_w_h)
@@ -60,39 +72,52 @@ def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int
 
 def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE: bool, with_cpu: bool, n_epochs: int, data_pred: Union[np.ndarray, list, xr.DataArray], file_save: str, verbose: bool, compile_params: dict = {}, fit_params : dict() = {}):
     """
-      runAE
-       
-      Function that performs the AE traing.
-        
-      Parameters
-      ----------
-      input_dim: int or list of int
-         Contains the shape of the input data to the keras.model.     
-      latent_dim: int
-         Represent the shape of the latent (code) space.                            
-      arch: int
-         Value that determine which model architecture sould be used to build the model.  
-      use_VAE : bool
-         Value that determines if the model should be a Variational Autoencoder or not.
-      with_cpu: bool
-         Value that determines if the cpu should be used instead of (default) gpu.
-      n_epochs: int 
-         The number of epochs for the keras.model.                     
-      data_pred: np.ndarray
-         Driver/predictor data (usually) to train the model.        
-      file_save: str
-         Where to save the .h5 model.
-      verbose: bool
-         Value that determines if the execution information should be displayed.  
-      compile_params: dict
-         Dictionary that contains all the parameters (avaible depending on tensorflow/keras version) to use for the .compile() function. 
-      fit_params: dict
-         Dictionary that contains all the parametes (avaible depending on tensorflow/keras version) to use for the .fit() function, except for epochs and verbose.
-        
-      Returns
-      ----------                                            
-      AE.encoder: keras.model.
-         Keras object that correspond to the fitted encoder model.
+    runAE
+    
+    Function that performs the AE traing.
+    
+    Parameters
+    ----------
+    input_dim: int or list of int
+        Contains the shape of the input data to the keras.model.     
+    latent_dim: int
+        Represent the shape of the latent (code) space.                            
+    arch: int
+        Value that determine which model architecture sould be used to build the model.  
+    use_VAE : bool
+        Value that determines if the model should be a Variational Autoencoder or not.
+    with_cpu: bool
+        Value that determines if the cpu should be used instead of (default) gpu.
+    n_epochs: int 
+        The number of epochs for the keras.model.                     
+    data_pred: np.ndarray
+        Driver/predictor data (usually) to train the model.        
+    file_save: str
+        Where to save the .h5 model.
+    verbose: bool
+        Value that determines if the execution information should be displayed.  
+    compile_params: dict
+        Dictionary that contains all the parameters (avaible depending on tensorflow/keras version) to use for the .compile() function. 
+    fit_params: dict
+        Dictionary that contains all the parametes (avaible depending on tensorflow/keras version) to use for the .fit() function, except for epochs and verbose.
+    
+    Returns
+    ----------                                            
+    AE.encoder: keras.model.
+        Keras object that correspond to the fitted encoder model.
+    
+    Raises
+    ------
+    ValueError
+        If input/output dimensions mismatch.
+    RuntimeError
+        If GPU device unavailable when requested.
+    
+    Notes
+    -----
+    - Saves encoder/decoder as separate files
+    - Generates training loss plots in ./figures/
+    - Automatically creates directories if missing
     """
     verbose = 1 if verbose else 0
     if with_cpu:
@@ -125,27 +150,39 @@ def runAE(input_dim: Union[int, list[int]], latent_dim: int, arch: int, use_VAE:
 
 def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pre_indust_pred: Union[list, np.ndarray] = None, indust_pred: Union[list, np.ndarray] = None, data_of_interest_pred: Union[list, np.ndarray] = None, period : str = 'both') -> Union[np.ndarray, list]:
     """
-      get_AE_stats                                       
-       
-      Function used to obtain statistical information about the encoded data by the Autoencoder. It codifies train data based on the period and specific details of the architecture.
-        
-      Parameters
-      ----------                                             
-      use_VAE, with_cpu: bool
-         Booleans values that determines if the model should be VAE, if the cpu should be used instead gpu or if the, respectively.    
-      AE_pre, AE_ind: keras.model
-         Encoders keras.model for pre and post industrial period.                         
-      pre_indust_pred, indust_pred: list or np.ndarray
-         Driver/predictor data of pre and post industrial period.                     
-      data_of_interes_pred:list or np.ndarray
-         Driver/predictor data of interest.    
-      period: str
-         Value that handle wich part of the data is used.                                   
-        
-      Returns
-      ----------                                            
-      : list or ndarray.
-         A ndarray containind the data.                     
+    get_AE_stats                                       
+    
+    Function used to obtain statistical information about the encoded data by the Autoencoder. It codifies train data based on the period and specific details of the architecture.
+    
+    Parameters
+    ----------                                             
+    use_VAE, with_cpu: bool
+        Booleans values that determines if the model should be VAE, if the cpu should be used instead gpu or if the, respectively.    
+    AE_pre, AE_ind: keras.model
+        Encoders keras.model for pre and post industrial period.                         
+    pre_indust_pred, indust_pred: list or np.ndarray
+        Driver/predictor data of pre and post industrial period.                     
+    data_of_interes_pred:list or np.ndarray
+        Driver/predictor data of interest.    
+    period: str
+        Value that handle wich part of the data is used.                                   
+    
+    Returns
+    ----------                                            
+    : list or ndarray.
+        A ndarray containind the data.                     
+    
+    Raises
+    ------
+    ValueError
+        If invalid period specified.
+        If missing required models/data for period.
+    
+    Notes
+    -----
+    - Computes absolute differences in latent space
+    - Concatenates results for multi-period analyses
+    - Flattens outputs to 1D array
     """
     if with_cpu:
         with tf.device("/cpu:0"):
@@ -207,6 +244,47 @@ def get_AE_stats(with_cpu: bool, use_VAE: bool, AE_pre = None, AE_ind = None, pr
     return res
 
 def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg_file: str = '.secret.txt'):
+    """
+    am
+    
+    Main function that orchestrates the Analog Method (AM) workflow. It handles configuration loading, preprocessing, 
+    analog search execution, and post-processing. Supports Telegram notifications and result saving.
+    
+    Parameters
+    ----------
+    file_params_name : str
+        Path to the JSON configuration file containing analysis parameters.
+    ident : bool
+        Flag to enable heatwave period identification before analysis.
+    teleg : bool
+        Flag to enable Telegram notifications for warnings and errors.
+    save_recons : bool
+        Flag to save reconstructed data as NetCDF files in the './data/' directory.
+    teleg_file : str, optional
+        Path to Telegram credentials file (default is '.secret.txt').
+    
+    Raises
+    ------
+    OSError
+        If the configuration file is not found.
+    ValueError
+        If invalid parameters are detected in the configuration.
+    
+    Notes
+    -----
+    - Reads parameters from JSON configuration file
+    - Handles preprocessing of climate data
+    - Performs analog search using specified method
+    - Manages Telegram notifications if enabled
+    - Saves reconstructions if enabled
+    - Executes post-processing for result analysis
+    
+    The function coordinates the entire AM workflow including optional heatwave identification,
+    data preprocessing, model training, analog search, and result post-processing.
+    
+    Returns
+    ----------
+    """
     # Teleg
     token = None
     chat_id = None
@@ -297,45 +375,57 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
 
 def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_interest_pred: Union[list, np.ndarray], time_pred: xr.DataArray, data_target: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, target_var_name : str = 'air', file_time_name: str = 'analogues.npy') -> tuple:
     """
-      analogSearch                                       
-       
-      Funtion that performs the Analog Search Method for a given diver/predictor and targeterature (target) variable.                                  
-        
-      Parameters
-      ----------
-      p: int
-          The p-order of Minskowski distance to perform.
-      k: int
-          Number of near neighbours to search.            
-      data_pred: list or ndarray
-          Driver/predictor data where to search.
-      data_of_interes_pred: list or ndarray
-          Driver/predictor data to be searched.
-      time_pred: DataArray
-          Time DataArray corresponding to the driver/predictor data where is searching.
-      data_target: Dataset
-          Target Dataset Dataset used to check the target value.
-      enhanced_distance: bool
-          Flag that decides if local proximity has to be performed or no.
-      threshold: int or float
-          Threshold used in analogSearch to compute local proximity.
-      img_size: list or ndarray
-          List that determine the size of the driver/predictor and target images.
-      iter: int
-          How many random neighbours to select.
-      threshold_offset_counter: int
-          Number used to perform the local proximity. Default 20.
-      replace_choice: bool
-          Flag that indicates if iter selected can be replaced.
-      target_var_name: str
-          The name of the Target Dataset variable in case of working with different Dataset.
-      file_time_name: str
-          The name of the file where to save the found analogues.
-        
-      Returns
-      ----------
-      : tuple
-          A tuple containing selected driver/predictor and target.
+    analogSearch                                       
+    
+    Funtion that performs the Analog Search Method for a given diver/predictor and target variable.                                  
+    
+    Parameters
+    ----------
+    p: int
+        The p-order of Minskowski distance to perform.
+    k: int
+        Number of near neighbours to search.            
+    data_pred: list or ndarray
+        Driver/predictor data where to search.
+    data_of_interes_pred: list or ndarray
+        Driver/predictor data to be searched.
+    time_pred: DataArray
+        Time DataArray corresponding to the driver/predictor data where is searching.
+    data_target: Dataset
+        Target Dataset Dataset used to check the target value.
+    enhanced_distance: bool
+        Flag that decides if local proximity has to be performed or no.
+    threshold: int or float
+        Threshold used in analogSearch to compute local proximity.
+    img_size: list or ndarray
+        List that determine the size of the driver/predictor and target images.
+    iter: int
+        How many random neighbours to select.
+    threshold_offset_counter: int
+        Number used to perform the local proximity. Default 20.
+    replace_choice: bool
+        Flag that indicates if iter selected can be replaced.
+    target_var_name: str
+        The name of the Target Dataset variable in case of working with different Dataset.
+    file_time_name: str
+        The name of the file where to save the found analogues.
+    
+    Returns
+    ----------
+    : tuple
+        A tuple containing selected driver/predictor and target.
+    
+    Raises
+    ------
+    ValueError
+        If k exceeds available analogs.
+        If p <= 0.
+    
+    Notes
+    -----
+    - Uses scipy.spatial.minkowski_distance
+    - Saves selected analog times to numpy file
+    - Handles both encoded and raw predictor data
     """
     is_not_encoded = (len(np.shape(data_pred)) == 4)
 
@@ -372,27 +462,39 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
 
 def calculate_interest_region(interest_region: Union[list, np.ndarray], dims_list: int, resolution: Union[int, float, str] = 2, is_teleg: bool = False, secret_file:str = './secret.txt') -> list:
     """
-      calculate_interest_region
-       
-      Method which transform latitude/longitude degrees to index. It is used to increase the speed of the methods by using numpy arrays insted of Dataset or DataArray.
-        
-      Parameters
-      ----------
-      interest_region: list or ndarray
-          List which contains the latitude and longitude degrees to be converted as index. 
-      dims_list: list of int
-          List that contain, in this order, the minimum latitude, maximum latitude, minumin longitude, maximum longitude. When resolution is 'auto', dims_list should be a tuple with (latitude, longitude).
-      resolution: int, float or str
-          Degrees resolution employed. Default value is 2º. If resolution is 'auto' it will infer automatically the resolution (useful when resolution is not constant along the dimensions)
-      is_teleg: bool
-          Flag that indicate if the warnings have to be sent to Telegram or not.
-      secret_file: str
-          Auxiliar variable only needed if is_teleg True to read token and chat_id values.
-        
-      Returns
-      ----------
-      new_interest_region: int
-          A list that contains the equivalent index values.  
+    calculate_interest_region
+    
+    Method which transform latitude/longitude degrees to index. It is used to increase the speed of the methods by using numpy arrays insted of Dataset or DataArray.
+    
+    Parameters
+    ----------
+    interest_region: list or ndarray
+        List which contains the latitude and longitude degrees to be converted as index. 
+    dims_list: list of int
+        List that contain, in this order, the minimum latitude, maximum latitude, minumin longitude, maximum longitude. When resolution is 'auto', dims_list should be a tuple with (latitude, longitude).
+    resolution: int, float or str
+        Degrees resolution employed. Default value is 2º. If resolution is 'auto' it will infer automatically the resolution (useful when resolution is not constant along the dimensions)
+    is_teleg: bool
+        Flag that indicate if the warnings have to be sent to Telegram or not.
+    secret_file: str
+        Auxiliar variable only needed if is_teleg True to read token and chat_id values.
+    
+    Returns
+    ----------
+    new_interest_region: list
+        A list that contains the equivalent index values, as [lat_start_idx, lat_end_idx, lon_start_idx, lon_end_idx]
+    
+    Raises
+    ------
+    ValueError
+        If resolution='auto' without coordinate data.
+        If interest_region outside domain bounds.
+    
+    Notes
+    -----
+    - Handles both 0-360 and -180-180 longitude systems
+    - Automatically adjusts out-of-bounds regions
+    - Uses np.isclose for coordinate matching with 'auto' resolution
     """
     token = None
     chat_id = None
@@ -437,25 +539,37 @@ def calculate_interest_region(interest_region: Union[list, np.ndarray], dims_lis
 
 def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstructions_Post_Analog: list, reconstructions_Pre_AE: list, reconstructions_Post_AE: list):
     """
-      save_reconstruction
-       
-      Method that save the target reconstruction based on the runs maded. It do not return anything, only save the Xarray Datasets on the corresponding file on data folder. Each file have the format [name]-[period]-[method]-[time].nc.
+    save_reconstruction
+    
+    Method that save the target reconstruction based on the runs maded. It do not return anything, only save the Xarray Datasets on the corresponding file on data folder. Each file have the format [name]-[period]-[method]-[time].nc.
 
-      Parameters
-      ----------
-      params: dict
-          A dictionary which contains all the needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
-      reconstruction_Pre_Analog: list
-          A list with the multiple reconstructed pre-industrial data by the Analog Method, for each day (or week).
-      reconstruction_Post_Analog: list
-          A list with the multiple reconstructed post-industrial data by the Analog Method, for each day (or week).
-      reconstruction_Pre_AE: list
-          A list with the multiple reconstructed pre-industrial data by the AutoEncoder, for each day (or week).
-      reconstruction_Post_AE: list
-          A list with the multiple reconstructed post-industrial data by the AutoEncoder, for each day (or week).
+    Parameters
+    ----------
+    params: dict
+        A dictionary which contains all the needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
+    reconstruction_Pre_Analog: list
+        A list with the multiple reconstructed pre-industrial data by the Analog Method, for each day (or week).
+    reconstruction_Post_Analog: list
+        A list with the multiple reconstructed post-industrial data by the Analog Method, for each day (or week).
+    reconstruction_Pre_AE: list
+        A list with the multiple reconstructed pre-industrial data by the AutoEncoder, for each day (or week).
+    reconstruction_Post_AE: list
+        A list with the multiple reconstructed post-industrial data by the AutoEncoder, for each day (or week).
 
-      Returns
-      ----------
+    Returns
+    ----------
+    
+    Raises
+    ------
+    IOError
+        If NetCDF writing fails.
+    
+    Notes
+    -----
+    - Saves files to ./data/ directory
+    - Uses xarray for NetCDF export
+    - Filenames include execution timestamp
+    - Averages multiple reconstructions
     """
     current = datetime.datetime.now()
     int_reg = params["interest_region"]
@@ -494,19 +608,33 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
 
 def perform_preprocess(params: dict) -> tuple:
     """
-      perform_preprocess
-       
-      Method that perform the preprocessing stage
-        
-      Parameters
-      ----------
-      params: dict
-         A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
-        
-      Returns
-      ----------
-      : tuple
-          A tuple of all needed data.
+    perform_preprocess
+    
+    Method that perform the preprocessing stage
+    
+    Parameters
+    ----------
+    params: dict
+        A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
+    
+    Returns
+    ----------
+    : tuple
+        A tuple of all needed data.
+    
+    Raises
+    ------
+    FileNotFoundError
+        If input datasets missing.
+    ValueError
+        If invalid time ranges.
+    
+    Notes
+    -----
+    - Handles multiple time resolutions (daily/weekly/monthly)
+    - Normalizes data per variable
+    - Converts xarray DataArrays to numpy arrays
+    - Manages train/test splits
     """
     # Set teleg
     is_teleg = False
@@ -817,19 +945,31 @@ def perform_preprocess(params: dict) -> tuple:
 
 def runComparison(params: dict)-> tuple:
     """
-      runComparison                                      
-       
-      Method that perform the preprocessing, use of the others previous methods, and comparison between analogSearch and AE + analogSearch.                
-        
-      Parameters
-      ----------
-      params: dict
-         A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
-        
-      Returns
-      ----------
-      : tuple
-          A tuple of 4 elemets, each containing the corresponding reconstructions list data.
+    runComparison                                      
+    
+    Method that perform the preprocessing, use of the others previous methods, and comparison between analogSearch and AE + analogSearch.                
+    
+    Parameters
+    ----------
+    params: dict
+        A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
+    
+    Returns
+    ----------
+    : tuple
+        A tuple of 4 elemets, each containing the corresponding reconstructions list data.
+    
+    Raises
+    ------
+    RuntimeError
+        If model loading fails.
+    
+    Notes
+    -----
+    - Generates comparison CSV files
+    - Produces KDE plots of results
+    - Handles both CPU/GPU execution
+    - Supports multiple latent dimensions
     """
     # Set teleg
     is_teleg = False
@@ -1060,19 +1200,31 @@ def runComparison(params: dict)-> tuple:
 
 def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
     """
-      identify_heatwave_days                             
-       
-      Method that perform the identifitacion of the heat wave period, following the definition from http://doi.org/10.1088/1748-9326/10/12/124003.
-        
-      Parameters
-      ----------
-      params: dict
-          A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
-        
-      Returns
-      ----------
-      heatwave_period: list or ndarray
-          A list of datetime that contains the heat wave period.
+    identify_heatwave_days                             
+    
+    Method that perform the identifitacion of the heat wave period, following the definition from http://doi.org/10.1088/1748-9326/10/12/124003.
+    
+    Parameters
+    ----------
+    params: dict
+        A dictionary with needed parameters and configuration. Mainly loaded from the configuration file, with some auxiliar parameters added by other functions.
+    
+    Returns
+    ----------
+    heatwave_period: list or ndarray
+        A list of datetime that contains the heat wave period.
+     
+    Raises
+    ------
+    ValueError
+        If percentile out of [0,100] range.
+    
+    Notes
+    -----
+    - Uses 90th percentile by default
+    - Follows Russo et al. (2015) methodology
+    - Generates validation plots in ./figures/
+    - Handles both single and multi-day events
     """
     # Load data
     if not "ident_dataset" in params:
@@ -1202,7 +1354,19 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
 
     Returns
     ----------
-    """      
+    
+    Raises
+    ------
+    FileNotFoundError
+        If result files missing.
+    
+    Notes
+    -----
+    - Generates KDE comparison plots
+    - Produces multi-method statistical summaries
+    - Handles both attribution and detection modes
+    - Supports parallel execution results
+    """
 
     # Read params
     file_params = open(params_file)
@@ -1721,41 +1885,41 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
 
 def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, period, method):
     """
-      _step_loop
-       
-      Auxiliar method that handle the runs depending on the options specified.
-        
-      Parameters
-      ----------
-      params: dict
-          Default parameters and configuration dictionary for most of the executions.
-      params_multiple: dict
-          Specific parameters and configuration dictionary that overwrite params for some methods.
-      file_params_name: str
-          The default name of the params/configuration file.
-      n_execs: int
-          The number of repeted executions for some methods.
-      ident: bool
-          Value of flag to performs the identification period task or not.
-      verb: bool
-          Value of flag that indicates if verbosity information should be show or not.
-      teleg: bool
-          Value of flag for sending Exceptions to Telegram bot.
-      token: str
-          Token of Telegram bot.
-      chat_id: str
-          ID of the chat where the Telegram bot will send the messages.
-      user_name: str
-          User name to mention in case of Exceptions.
-      save_recons: bool
-          Value of flag for saving or not the reconstrucion information in an .nc file.
-      period: str
-          Specify the period where to perform the operation between `both` (default), `pre` or `post`.
-      method: str
-          Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
-        
-      Returns
-      ----------
+    _step_loop
+     
+    Auxiliar method that handle the runs depending on the options specified.
+      
+    Parameters
+    ----------
+    params: dict
+        Default parameters and configuration dictionary for most of the executions.
+    params_multiple: dict
+        Specific parameters and configuration dictionary that overwrite params for some methods.
+    file_params_name: str
+        The default name of the params/configuration file.
+    n_execs: int
+        The number of repeted executions for some methods.
+    ident: bool
+        Value of flag to performs the identification period task or not.
+    verb: bool
+        Value of flag that indicates if verbosity information should be show or not.
+    teleg: bool
+        Value of flag for sending Exceptions to Telegram bot.
+    token: str
+        Token of Telegram bot.
+    chat_id: str
+        ID of the chat where the Telegram bot will send the messages.
+    user_name: str
+        User name to mention in case of Exceptions.
+    save_recons: bool
+        Value of flag for saving or not the reconstrucion information in an .nc file.
+    period: str
+        Specify the period where to perform the operation between `both` (default), `pre` or `post`.
+    method: str
+        Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
+      
+    Returns
+    ----------
     """
     reconstructions_Pre_Analog = []
     reconstructions_Post_Analog = []
@@ -2042,26 +2206,26 @@ def va_am(ident:bool=False, method:str='day', config_file:str='params.json', sec
     Equivalent to main function. Its scope is to provide a way to perform the same procedures as `main` function, but by importing it in another python code. 
     
     Parameters
-      ----------
-      ident: bool
-          Value of flag to performs the identification period task or not.
-      method: str
-          Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
-      config_file: str
-          The default name of the params/configuration file.
-      secret_file: str
-          The default name of the Telegram bot informatin file.
-      verbose: bool
-          Value of flag that indicates if verbosity information should be show or not.
-      teleg: bool
-          Value of flag for sending Exceptions to Telegram bot.
-      period: str
-          Specify the period where to perform the operation between `both` (default), `pre` or `post`.
-      save_recons: bool
-          Value of flag for saving or not the reconstrucion information in an .nc file.
+    ----------
+    ident: bool
+        Value of flag to performs the identification period task or not.
+    method: str
+        Specify an method to execute between: `day` (default), `days`, `seasons`, `execs`, `latents`, `seasons-execs`, `latents-execs` or `latents-seasons-execs`
+    config_file: str
+        The default name of the params/configuration file.
+    secret_file: str
+        The default name of the Telegram bot informatin file.
+    verbose: bool
+        Value of flag that indicates if verbosity information should be show or not.
+    teleg: bool
+        Value of flag for sending Exceptions to Telegram bot.
+    period: str
+        Specify the period where to perform the operation between `both` (default), `pre` or `post`.
+    save_recons: bool
+        Value of flag for saving or not the reconstrucion information in an .nc file.
         
-      Returns
-      ----------
+    Returns
+    ----------
     """
     # Default parameters
     params = {
