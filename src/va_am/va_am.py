@@ -377,7 +377,7 @@ def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_inte
     """
     analogSearch                                       
     
-    Funtion that performs the Analog Search Method for a given diver/predictor and targeterature (target) variable.                                  
+    Funtion that performs the Analog Search Method for a given diver/predictor and target variable.                                  
     
     Parameters
     ----------
