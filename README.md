@@ -2,7 +2,7 @@
 [![Documentation Status](https://readthedocs.org/projects/va-am/badge/?version=latest)](https://va-am.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/va-am.svg)](https://badge.fury.io/py/va-am)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/va-am.svg)](https://anaconda.org/conda-forge/va-am)
-[![Tests](https://github.com/GheodeAI/va_am/actions/workflows/python-package.yml/badge.svg?label=Test)](https://github.com/GheodeAI/va_am/actions/workflows/python-package.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/GheodeAI/va_am/python-package.yml?label=test)](https://github.com/GheodeAI/va_am/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/GheodeAI/va_am/branch/master/graph/badge.svg)](https://codecov.io/gh/GheodeAI/va_am)
 
 <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/distribution.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/identification.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/identification2.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/distribution2.png" width="200" />
