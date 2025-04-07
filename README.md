@@ -1,13 +1,14 @@
 # VA-AM
 [![Documentation Status](https://readthedocs.org/projects/va-am/badge/?version=latest)](https://va-am.readthedocs.io/en/latest/?badge=latest)
-[![PyPI Version](https://img.shields.io/pypi/v/va-am?color=blue)](https://pypi.org/project/va-am/)
-[![PyPI Downloads](https://img.shields.io/pepy/dt/va-am?color=blue&label=PyPI%20downloads)](https://pepy.tech/project/va-am)
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/va_am.svg)](https://anaconda.org/conda-forge/va_am)
-[![Conda Downloads](https://img.shields.io/conda/d/conda-forge/va_am?color=orange&label=Conda%20downloads)](https://anaconda.org/conda-forge/va_am)
 [![Tests](https://img.shields.io/github/actions/workflow/status/GheodeAI/va_am/python-package.yml?label=test)](https://github.com/GheodeAI/va_am/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/GheodeAI/va_am/branch/master/graph/badge.svg)](https://codecov.io/gh/GheodeAI/va_am)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/pypi/l/va-am)](https://github.com/GheodeAI/va_am/blob/master/LICENSE)
+
+[![PyPI Version](https://img.shields.io/pypi/v/va-am?color=blue)](https://pypi.org/project/va-am/)
+[![PyPI Downloads](https://img.shields.io/pepy/dt/va-am?color=blue&label=PyPI%20downloads)](https://pepy.tech/project/va-am)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/va_am.svg)](https://anaconda.org/conda-forge/va_am)
+[![Conda Downloads](https://img.shields.io/conda/d/conda-forge/va_am?color=orange&label=Conda%20downloads)](https://anaconda.org/conda-forge/va_am)
 [![Libraries.io](https://img.shields.io/librariesio/release/pypi/va-am)](https://libraries.io/pypi/va-am)
 
 <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/distribution.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/identification.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/identification2.png" width="200" /> <img src="https://raw.githubusercontent.com/cosminmarina/va_am/master/docs/_static/distribution2.png" width="200" />
