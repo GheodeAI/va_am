@@ -405,6 +405,8 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
         threshold = stat_mean-0.3*stat_std
         threshold_AE = encoded.mean()-0.3*encoded.std()
     
+    Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
+
     if params["period"] in ['both', 'pre']:
         file_time_name = f'./comparison-csv/analogues-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
         analog_pre = analogSearch(params["p"], params["k"], pre_indust_pred, data_of_interest_pred, time_pre_indust_pred, pre_indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
@@ -623,6 +625,7 @@ def save_reconstruction(params: dict, reconstructions_Pre_Analog: list, reconstr
     current = datetime.datetime.now()
     int_reg = params["interest_region"]
     resolution = params["resolution"]
+    Path("./data").mkdir(parents=True, exist_ok=True)
     if params["save_recons"]:
         if params["period"] in ["both", "pre"]:
             Path("./data").mkdir(parents=True, exist_ok=True)
@@ -1185,6 +1188,7 @@ def runComparison(params: dict)-> tuple:
         plt.savefig(f'./encoded_latent{params["latent_dim"]}.pdf')
         plt.close()
 
+    Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
     # Analog Pre
     if params["period"] in ['both', 'pre']:
         file_time_name = f'./comparison-csv/analogues-am-pre-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
@@ -1438,6 +1442,8 @@ def post_process(params_file: str, save_stats: bool = True, is_atribution: bool 
     is_Mv, target_var = _get_post_information(params)
     current = datetime.datetime.now()
     # Perform post-process
+    Path("./comparison-csv").mkdir(parents=True, exist_ok=True)
+    Path("./figures").mkdir(parents=True, exist_ok=True)
     path = f'./comparison-csv/*{params["name"]}*{params["latent_dim"]}*arch{params["arch"]}*.csv'
     files_interest = glob.glob(path)
     files_interest = sorted(files_interest)
