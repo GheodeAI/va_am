@@ -70,7 +70,7 @@ def square_dims(size:Union[int, list[int], np.ndarray[int]], ratio_w_h:Union[int
     y_size = size//x_size
     return (x_size, y_size) if x_size < y_size else (y_size, x_size)
 
-def standardize_dims(data: Union[xr.DataArray, xr.DataSet]):
+def standardize_dims(data: Union[xr.DataArray, xr.Dataset]):
     """
     standardize_dims
     
