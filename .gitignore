@@ -12,6 +12,7 @@ out.txt
 *.mp4
 copy/
 copy/*
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
