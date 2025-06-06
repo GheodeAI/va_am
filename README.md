@@ -135,3 +135,23 @@ Collaboration[#](#collaboration "Permalink to this heading")
 --------------
 
 If you find any bugs/issues or have any suggestions, please open an [issue](https://github.com/cosminmarina/va_am/issues/new).
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code
+of conduct, and the process for submitting pull requests to us.
+
+## Authors[#](#authors "Permalink to this heading")
+
+  - **Cosmin M. Marina** - *Provided Code and Maitenance* -
+    [cosminmarina](https://github.com/cosminmarina)
+  - **Eugenio Lorente-Ramos** - *Provided Code* -
+    [eugenioLR](https://github.com/eugenioLR)
+
+See also the list of
+[contributors](https://github.com/cosminmarina/dkrz_utils/contributors)
+who participated in this project.
+
+## License[#](#license "Permalink to this heading")
+
+This project is licensed under the [GPL v3.0](LICENSE)
+GNU General Public License - see the [LICENSE](LICENSE) file for
+details
