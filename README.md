@@ -147,7 +147,7 @@ of conduct, and the process for submitting pull requests to us.
     [eugenioLR](https://github.com/eugenioLR)
 
 See also the list of
-[contributors](https://github.com/cosminmarina/dkrz_utils/contributors)
+[contributors](https://github.com/cosminmarina/va_am/contributors)
 who participated in this project.
 
 ## License[#](#license "Permalink to this heading")
