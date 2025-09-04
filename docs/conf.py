@@ -55,14 +55,10 @@ html_theme_options = {"show_toc_level" : 4,
       				"image_dark": "_static/va-am2.png",
 					},
 		      "navbar_center": ["navbar-nav"],
-		      "navbar_end": ["navbar-icon-links", {
-									"name": "Cite",
-									"url": "citation",
-									"icon": "fas fa-quote-right",
-								}],
+		      "navbar_end": ["navbar-icon-links"],
 		      "navbar_persistent": ["search-button"],
 		      "primary_sidebar_end": ["sidebar-ethical-ads"],
-		      "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+		      "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink", "custom-citation"],
 		      "navbar_align": "left"}
 
 # -- Options for HTML output -------------------------------------------------
@@ -84,3 +80,4 @@ html_theme = 'pydata_sphinx_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+templates_path = ['_templates']
