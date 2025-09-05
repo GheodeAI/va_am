@@ -1,7 +1,7 @@
 .. _citation:
 
 =========
-Citation
+Cite as
 =========
 
 If you use VA-AM in your research, please cite the following article:
