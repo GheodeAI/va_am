@@ -7,6 +7,7 @@
 
 .copybtn:hover {
     opacity: 1;
+    transform: scale(1.6); 
 }
 
 .highlight {
