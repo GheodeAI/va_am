@@ -1,0 +1,26 @@
+/* Custom styling for copy button */
+.copybtn {
+    opacity: 0.6;
+    transition: opacity 0.3s;
+    transform: scale(2);
+}
+
+.copybtn:hover {
+    opacity: 1;
+}
+
+.highlight {
+    position: relative;
+}
+
+.highlight .copybtn {
+    position: absolute;
+    top: 0.5em;
+    right: 0.5em;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 0.2em 0.5em;
+    background-color: #f8f8f8;
+    color: #333;
+}
