@@ -2,6 +2,7 @@
 .copybtn {
     opacity: 0.6;
     transition: opacity 0.3s;
+    transform: scale(2);
 }
 
 .copybtn:hover {
