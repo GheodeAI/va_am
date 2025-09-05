@@ -90,4 +90,4 @@ copybutton_here_doc_delimiter = "EOT"
 copybutton_selector = "div.highlight pre"
 
 def setup(app):
-    app.add_css_file('custom.css')
+    app.add_css_file('_static/custom.css')
