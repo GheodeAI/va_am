@@ -154,6 +154,7 @@ Contents
 
    API Reference <modules>
    How to <how_to>
+   Cite as <citation>
    License <license>
    Changelog <https://github.com/cosminmarina/va_am>
 

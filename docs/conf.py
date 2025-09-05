@@ -35,7 +35,8 @@ extensions = [
 	"sphinx.ext.autodoc",
 	"sphinx.ext.autosummary",
 	"sphinx.ext.napoleon",
-	'sphinx_licenseinfo'
+	'sphinx_licenseinfo',
+    'sphinx_copybutton'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,7 +59,7 @@ html_theme_options = {"show_toc_level" : 4,
 		      "navbar_end": ["navbar-icon-links"],
 		      "navbar_persistent": ["search-button"],
 		      "primary_sidebar_end": ["sidebar-ethical-ads"],
-		      "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink"],
+		      "secondary_sidebar_items": ["page-toc", "edit-this-page", "sourcelink", "custom-citation"],
 		      "navbar_align": "left"}
 
 # -- Options for HTML output -------------------------------------------------
@@ -80,3 +81,13 @@ html_theme = 'pydata_sphinx_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+templates_path = ['_templates']
+
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+copybutton_prompt_is_regexp = True
+copybutton_line_continuation_character = "\\"
+copybutton_here_doc_delimiter = "EOT"
+copybutton_selector = "div.highlight pre"
+
+def setup(app):
+    app.add_css_file('_static/custom.css')
