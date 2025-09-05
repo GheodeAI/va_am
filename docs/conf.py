@@ -83,3 +83,11 @@ html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
 templates_path = ['_templates']
 
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+copybutton_prompt_is_regexp = True
+copybutton_line_continuation_character = "\\"
+copybutton_here_doc_delimiter = "EOT"
+copybutton_selector = "div.highlight pre"
+
+def setup(app):
+    app.add_css_file('custom.css')
