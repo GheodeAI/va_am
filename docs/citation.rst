@@ -11,8 +11,11 @@ If you use VA-AM in your research, please cite the following article:
 Annals of the New York Academy of Sciences, 1541, 230–242.  
 https://doi.org/10.1111/nyas.15243
 
-BibTeX entry::
+BibTeX entry:
 
+.. code-block:: bibtex
+   :linenos:
+   
    @article{perez_aracil_2024,
       title = {Autoencoder-based flow-analogue probabilistic reconstruction of heat waves from pressure fields},
       volume = {1541},

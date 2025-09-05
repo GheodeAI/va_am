@@ -10,3 +10,4 @@ sympy==1.10.1
 tensorflow==2.10.0
 xarray==0.20.2
 seaborn==0.12.2
+sphinx-copybutton==0.5.2
