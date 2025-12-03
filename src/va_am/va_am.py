@@ -1345,7 +1345,7 @@ def identify_heatwave_days(params: dict) -> Union[list, np.ndarray]:
         which_percentile = params["percentile"]
     
 
-    percentile_threshold = functions.hw_pctl(data_target[params["ident_var_name"]], ['1981', '2010'], which_percentile, params["ident_var_name"])
+    percentile_threshold = functions.hw_pctl(data_target[params["ident_var_name"]], ['1981', '2010'], which_percentile)
     data_target = data_target.sel(time=slice(params["data_of_interest_init"], params["data_of_interest_end"]))
     percentile_threshold = percentile_threshold.sel(dayofyear=slice(time_x[0].day_of_year, time_x[-1].day_of_year))
     surpass_threshold = functions.isHW_in_ds(data_target, percentile_threshold, params["ident_var_name"]).isHW.data

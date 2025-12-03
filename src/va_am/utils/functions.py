@@ -7,7 +7,7 @@ import datetime
 from typing import Union
 
 
-def hw_pctl(data : xr.Dataset, years : list[str], pctl: Union[int, float] = 90, var_name : str = 't2m_dailyMax') -> xr.Dataset:
+def hw_pctl(data : xr.Dataset, years : list[str], pctl: Union[int, float] = 90, window_size : int = 15) -> xr.Dataset:
     
     """
     This function calculates the heatwave percentile threshold for a given dataset, years and pctl.
@@ -20,8 +20,8 @@ def hw_pctl(data : xr.Dataset, years : list[str], pctl: Union[int, float] = 90, 
         Period to perform the percentile threshold, given the start and end year (usually [1981, 2010]).
     pctl : int or float.
         Value (integer or float) wich defines the percentile to perform (default 90).
-    var_name : str
-        In case of using a different dataset, with another name
+    window_size: int
+        Size of the rolling window.
 
     Returns
     -------
@@ -29,22 +29,61 @@ def hw_pctl(data : xr.Dataset, years : list[str], pctl: Union[int, float] = 90, 
         A xr.Dataset with the percentile threshold (called pctl_th as variable) for the given period.
 
     """
-    # Data must be with the variable already selected
-    # Selecting the period of interest (15 days are added at the beginning and end to avoid problems with the rolling window)
-    data_period = data.sel(time=slice(datetime.datetime.strptime(str(years[0]), "%Y") - datetime.timedelta(days=15), datetime.datetime.strptime(str(years[1]), "%Y") + datetime.timedelta(days=15)))
-    # Calculating the rolling mean (31 days). This is the window mean
-    data_period = data_period.rolling(time=31, center=True).mean().dropna(dim='time')
+    # Remove February 29th
+    data = data.sel(time=~((data.time.dt.month == 2) & (data.time.dt.day == 29)))
     
-    # Calculating the percentile for each day of the year
-    pctl_th = data_period.groupby('time.dayofyear').reduce(np.percentile, dim='time', q=pctl)
-    # Creating a date range considering the days. A leap year is considered to calculate the date range. 
-    # time = pd.date_range(start='1980-01-01', end='1980-12-31', freq='D').strftime('%m-%d')
-    # Adding the percentile to the Dataset
-    pctl_th_ds = pctl_th.to_dataset()
-    # Changing the name of the variable
-    pctl_th_ds = pctl_th_ds.rename({var_name: 'pctl_th'})
-    # Return the file
-    return pctl_th_ds
+    # Selecting the period with buffer
+    start_date = datetime.datetime(int(years[0]), 1, 1) - datetime.timedelta(days=window_size)
+    end_date = datetime.datetime(int(years[1]), 12, 31) + datetime.timedelta(days=window_size)
+    temp_data = data.sel(time=slice(start_date, end_date))
+    
+    # Create day-of-year array
+    doys = temp_data.time.dt.dayofyear.values
+    years_arr = temp_data.time.dt.year.values
+    
+    # Initialize array for thresholds
+    pctl_values = np.full(365, np.nan)
+    
+    # Vectorized calculation for each day of year
+    for doy in range(1, 366):
+        # Find all indices within ± window_size days of this DOY
+        # We need to handle year boundaries properly
+        mask = np.zeros_like(doys, dtype=bool)
+        
+        # For each year in reference period
+        for year in range(int(years[0]), int(years[1]) + 1):
+            # Calculate the window for this year
+            year_mask = (years_arr == year)
+            
+            # Calculate day-of-year range (handle wrap-around)
+            doy_min = doy - window_size
+            doy_max = doy + window_size
+            
+            if doy_min < 1:
+                # Window spans previous year
+                mask |= (year_mask & ((doys >= doy_min + 365) | (doys <= doy_max)))
+            elif doy_max > 365:
+                # Window spans next year
+                mask |= (year_mask & ((doys >= doy_min) | (doys <= doy_max - 365)))
+            else:
+                # Normal case
+                mask |= (year_mask & (doys >= doy_min) & (doys <= doy_max))
+        
+        # Extract values and calculate percentile
+        window_values = temp_data.values[mask]
+        window_values = window_values[~np.isnan(window_values)]
+        
+        if len(window_values) > 0:
+            pctl_values[doy-1] = np.percentile(window_values, pctl)
+    
+    # Create DataArray
+    pctl_th = xr.DataArray(
+        pctl_values,
+        dims=['dayofyear'],
+        coords={'dayofyear': range(1, 366)}
+    )
+    
+    return pctl_th.to_dataset(name='pctl_th')
 
 
 def isHW_in_ds(data : xr.Dataset, pctl_th : xr.Dataset, var_name : str = 't2m_dailyMax') -> xr.Dataset:
