@@ -414,7 +414,7 @@ to your .txt (or similar) file containing the secrets.
 .. code-block:: bash
 
     # Outside of the python code
-    $ python -m va_am -sr path/to/secret-file ...
+    $ python -m va_am -sf path/to/secret-file ...
 
 .. code-block:: python
 
