@@ -416,12 +416,13 @@ def am(file_params_name: str, ident: bool, teleg: bool, save_recons: bool, teleg
         file_time_name = f'./comparison-csv/analogues-post-{params["season"]}{params["name"]}x{params["iter"]}-{params["data_of_interest_init"]}-epoch{params["n_epochs"]}-latent{params["latent_dim"]}-k{params["k"]}-arch{params["arch"]}-{"VAE" if params["use_VAE"] else "noVAE"}{current.year}-{current.month}-{current.day}-{current.hour}-{current.minute}-{current.second}.npy'.replace(" ","").replace("'", "").replace(",","")
         analog_ind = analogSearch(params["p"], params["k"], indust_pred, data_of_interest_pred, time_indust_pred, indust_target, params["enhanced_distance"], threshold=threshold, img_size=img_size, iter=params["iter"], replace_choice=params["replace_choice"], target_var_name=params["target_var_name"], file_time_name=file_time_name)
     
-    post_process(file_params_name, is_atribution = period == 'both')
-    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
-    if teleg:
-        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
-        requests.get(url).json()
-    warnings.warn(message)
+    if not ident:
+        post_process(file_params_name, is_atribution = period == 'both')
+        message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+            requests.get(url).json()
+        warnings.warn(message)
     return
 
 def analogSearch(p:int, k: int, data_pred: Union[list, np.ndarray], data_of_interest_pred: Union[list, np.ndarray], time_pred: xr.DataArray, data_target: xr.Dataset, enhanced_distance:bool, threshold: Union[int, float], img_size: Union[list, np.ndarray], iter: int, threshold_offset_counter: int = 20, replace_choice: bool = True, target_var_name : str = 'air', file_time_name: str = 'analogues.npy') -> tuple:
@@ -1956,12 +1957,13 @@ def _step_loop(params, params_multiple, file_params_name, n_execs, ident, verb, 
             requests.get(url).json()
         raise message
     # Post-process
-    post_process(file_params_name, is_atribution = period == 'both')
-    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
-    if teleg:
-        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
-        requests.get(url).json()
-    warnings.warn(message)
+    if not ident:
+        post_process(file_params_name, is_atribution = period == 'both')
+        message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+            requests.get(url).json()
+        warnings.warn(message)
     return
 
 def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, ident, verb, teleg, token, chat_id, user_name, save_recons, period, method):
@@ -2272,12 +2274,13 @@ def _step_loop_without_args(params, params_multiple, file_params_name, n_execs, 
             requests.get(url).json()
         raise message
     # Post-process
-    post_process(file_params_name, is_atribution = period == 'both')
-    message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
-    if teleg:
-        url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
-        requests.get(url).json()
-    warnings.warn(message)
+    if not ident:
+        post_process(file_params_name, is_atribution = period == 'both')
+        message = f'Post process of method {args.method} for {params["name"]} with arch {params["arch"]} and latent dim {params["latent_dim"]} has finished successfully'
+        if teleg:
+            url = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={'[WARN]: '+message}"
+            requests.get(url).json()
+        warnings.warn(message)
     return
 
 def va_am(ident:bool=False, method:str='day', config_file:str='params.json', secret_file:str='secrets.txt', verbose:bool=False, teleg:bool=False, period:str='both', save_recons:bool=False):
